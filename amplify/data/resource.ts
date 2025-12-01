@@ -1,17 +1,68 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
-=========================================================================*/
+/**
+ * Pet Genie Data Schema
+ * Stores user settings and templates with owner-based authorization
+ * Calendar events are fetched from Google Calendar (not stored in Amplify)
+ */
 const schema = a.schema({
-  Todo: a
+  /**
+   * User Settings - per-user preferences and configuration
+   */
+  UserSettings: a
     .model({
-      content: a.string(),
+      // Workload thresholds as JSON
+      thresholds: a.json(),
+      // Display preferences
+      includeTravelTime: a.boolean().default(true),
+      defaultTravelBuffer: a.integer().default(15),
+      defaultCalendarView: a.string().default('month'),
+      weekStartsOn: a.integer().default(0),
+      timeFormat: a.string().default('12h'),
+      showWeekNumbers: a.boolean().default(false),
+      // Google Calendar config
+      googleClientId: a.string(),
+      selectedCalendars: a.string().array(),
+      // Business info
+      businessName: a.string(),
+      homeAddress: a.string(),
+      // Cache settings
+      cacheExpiryMinutes: a.integer().default(15),
+      autoRefreshMinutes: a.integer().default(15),
+      // Feature flags
+      enableAnalytics: a.boolean().default(true),
+      enableNotifications: a.boolean().default(true),
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.owner()]),
+
+  /**
+   * Templates - appointment templates for quick scheduling
+   */
+  Template: a
+    .model({
+      name: a.string().required(),
+      icon: a.string().default('🐾'),
+      type: a.enum(['overnight', 'housesit', 'drop-in', 'walk', 'meet-greet', 'nail-trim', 'other']),
+      duration: a.integer().required(), // in minutes
+      includeTravel: a.boolean().default(true),
+      travelBuffer: a.integer().default(15),
+      defaultNotes: a.string(),
+      color: a.string(),
+      isDefault: a.boolean().default(false),
+      sortOrder: a.integer().default(0),
+    })
+    .authorization((allow) => [allow.owner()]),
+
+  /**
+   * IgnoredEvents - events to exclude from workload calculations
+   */
+  IgnoredEvent: a
+    .model({
+      eventId: a.string().required(),
+      calendarId: a.string().required(),
+      reason: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -19,39 +70,11 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: 'apiKey',
-    // API Key is used for a.allow.public() rules
+    // Use Cognito user pools for owner-based authorization
+    defaultAuthorizationMode: 'userPool',
+    // Keep API key for unauthenticated access if needed
     apiKeyAuthorizationMode: {
       expiresInDays: 30,
     },
   },
 });
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>

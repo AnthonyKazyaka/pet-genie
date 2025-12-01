@@ -1,65 +1,198 @@
-body {
-    margin: 0;
-    background: linear-gradient(180deg, rgb(117, 81, 194), rgb(255, 255, 255));
-    display: flex;
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    height: 100vh;
-    width: 100vw;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  main {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #1a1a1a;
-    cursor: pointer;
-    transition: border-color 0.25s;
-    color: white;
-  }
-  button:hover {
-    border-color: #646cff;
-  }
-  button:focus,
-  button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
-  }
-  
-  ul {
-    padding-inline-start: 0;
-    margin-block-start: 0;
-    margin-block-end: 0;
-    list-style-type: none;
-    display: flex;
-    flex-direction: column;
-    margin: 8px 0;
-    border: 1px solid black;
-    gap: 1px;
-    background-color: black;
-    border-radius: 8px;
-    overflow: auto;
-  }
-  
-  li {
-    background-color: white;
-    padding: 8px;
-  }
-  
-  li:hover {
-    background: #dadbf9;
-  }
-  
-  a {
-    font-weight: 800;
-    text-decoration: none;
-  }
+/* Angular Material imports */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+/* Pet Genie Custom Theme */
+:root {
+  /* Primary colors - Indigo */
+  --primary: #4F46E5;
+  --primary-container: #E0E7FF;
+  --on-primary: #FFFFFF;
+  --on-primary-container: #312E81;
+
+  /* Secondary colors - Teal */
+  --secondary: #0D9488;
+  --secondary-container: #CCFBF1;
+  --on-secondary: #FFFFFF;
+  --on-secondary-container: #134E4A;
+
+  /* Tertiary colors - Green (for success states) */
+  --tertiary: #10B981;
+  --tertiary-container: #D1FAE5;
+  --on-tertiary: #FFFFFF;
+  --on-tertiary-container: #065F46;
+
+  /* Error colors */
+  --error: #EF4444;
+  --error-container: #FEE2E2;
+  --on-error: #FFFFFF;
+  --on-error-container: #7F1D1D;
+
+  /* Surface colors */
+  --surface: #FAFAFA;
+  --surface-container: #F5F5F5;
+  --surface-container-low: #FAFAFA;
+  --surface-container-high: #EEEEEE;
+  --on-surface: #1F2937;
+  --on-surface-variant: #6B7280;
+
+  /* Outline */
+  --outline: #D1D5DB;
+  --outline-variant: #E5E7EB;
+
+  /* Workload level colors */
+  --workload-comfortable: #10B981;
+  --workload-busy: #F59E0B;
+  --workload-high: #F97316;
+  --workload-burnout: #EF4444;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Base styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--on-surface);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Material overrides for pet-genie theme */
+.mat-toolbar.mat-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.mat-mdc-raised-button.mat-primary {
+  --mdc-protected-button-container-color: var(--primary);
+  --mdc-protected-button-label-text-color: var(--on-primary);
+}
+
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: var(--primary);
+  --mdc-filled-button-label-text-color: var(--on-primary);
+}
+
+/* Card styles */
+.mat-mdc-card {
+  --mdc-elevated-card-container-color: white;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--outline-variant);
+}
+
+.mat-mdc-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Sidenav styles */
+.mat-drawer {
+  background: white;
+}
+
+/* Form field styles */
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-outline-color: var(--outline);
+  --mdc-outlined-text-field-focus-outline-color: var(--primary);
+}
+
+/* Slider styles */
+.mat-mdc-slider {
+  --mdc-slider-handle-color: var(--primary);
+  --mdc-slider-focus-handle-color: var(--primary);
+  --mdc-slider-hover-handle-color: var(--primary);
+  --mdc-slider-active-track-color: var(--primary);
+  --mdc-slider-inactive-track-color: var(--primary-container);
+}
+
+/* Snackbar styles */
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--on-surface);
+  --mdc-snackbar-supporting-text-color: white;
+}
+
+/* Workload indicator classes */
+.workload-comfortable {
+  color: var(--workload-comfortable) !important;
+}
+
+.workload-busy {
+  color: var(--workload-busy) !important;
+}
+
+.workload-high {
+  color: var(--workload-high) !important;
+}
+
+.workload-burnout {
+  color: var(--workload-burnout) !important;
+}
+
+.workload-bg-comfortable {
+  background-color: var(--workload-comfortable) !important;
+}
+
+.workload-bg-busy {
+  background-color: var(--workload-busy) !important;
+}
+
+.workload-bg-high {
+  background-color: var(--workload-high) !important;
+}
+
+.workload-bg-burnout {
+  background-color: var(--workload-burnout) !important;
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.text-muted {
+  color: var(--on-surface-variant);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-container);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--on-surface-variant);
+}
