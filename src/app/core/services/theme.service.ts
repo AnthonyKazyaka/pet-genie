@@ -15,7 +15,7 @@ export class ThemeService {
     // Set up effect to apply theme changes
     effect(() => {
       this.applyTheme(this.currentTheme());
-    });
+    }, { allowSignalWrites: true });
 
     // Listen for system theme changes
     if (typeof window !== 'undefined') {
