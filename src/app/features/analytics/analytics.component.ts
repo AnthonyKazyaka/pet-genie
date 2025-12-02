@@ -137,7 +137,7 @@ interface DayOfWeekStats {
             <div class="skeleton-chart"></div>
           </mat-card-content>
         </mat-card>
-      } @else if (events().filter(e => e.isWorkEvent).length === 0) {
+      } @else if (hasWorkEvents() === false) {
         <app-empty-state
           icon="bar_chart"
           title="No data yet"
@@ -913,6 +913,11 @@ export class AnalyticsComponent implements OnInit {
     return Math.max(...stats.map(d => d.averageMinutes));
   });
 
+  // Check if there are work events
+  hasWorkEvents = computed(() => {
+    return this.events().some(e => e.isWorkEvent);
+  });
+
   // Summary statistics
   summaryStats = computed(() => {
     const allEvents = this.events().filter(e => e.isWorkEvent);
@@ -1133,6 +1138,18 @@ export class AnalyticsComponent implements OnInit {
   getDayBarWidth(minutes: number): number {
     const maxMinutes = Math.max(...this.dayOfWeekStats().map(d => d.averageMinutes), 60);
     return (minutes / maxMinutes) * 100;
+  }
+
+  getStrokeDasharray(percentage: number): string {
+    const circumference = 2 * Math.PI * 40; // radius = 40
+    const fillLength = (percentage / 100) * circumference;
+    return `${fillLength} ${circumference - fillLength}`;
+  }
+
+  getStrokeDashoffset(index: number): number {
+    const circumference = 2 * Math.PI * 40;
+    const offset = this.getSegmentOffset(index);
+    return -((offset / 100) * circumference);
   }
 
   getClientBarWidth(visitCount: number): number {

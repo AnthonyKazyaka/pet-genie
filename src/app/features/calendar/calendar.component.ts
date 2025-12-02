@@ -218,7 +218,7 @@ interface CalendarDay {
                               [class.work-event]="event.isWorkEvent"
                               [class.overnight]="event.isOvernightEvent"
                               [matTooltip]="getEventTooltip(event)"
-                              (click)="showEventDetails(event, $event)"
+                              (click)="showEventDetails(event)"
                             >
                               <span class="event-time">{{ format(event.start, 'h:mma').toLowerCase() }}</span>
                               {{ event.title }}
@@ -297,7 +297,7 @@ interface CalendarDay {
                               [style.top.px]="getEventTop(event)"
                               [style.height.px]="getEventHeight(event)"
                               [matTooltip]="getEventTooltip(event)"
-                              (click)="showEventDetails(event, $event)"
+                              (click)="showEventDetails(event)"
                             >
                               <div class="event-time">{{ format(event.start, 'h:mm a') }}</div>
                               <div class="event-title">{{ event.title }}</div>
@@ -337,11 +337,11 @@ interface CalendarDay {
                       <div class="day-hour-row">
                         <div class="hour-label">{{ formatHour(hour) }}</div>
                         <div class="hour-content">
-                          @for (event of getEventsForHour(hour); track event.id) {
+                          @for (event of getEventsForHour(dayViewDay(), hour); track event.id) {
                             <mat-card 
                               class="day-event-card" 
                               [class.work-event]="event.isWorkEvent"
-                              (click)="showEventDetails(event, $event)"
+                              (click)="showEventDetails(event)"
                               tabindex="0"
                               role="article"
                               [attr.aria-label]="getEventAriaLabel(event)"
@@ -1495,6 +1495,27 @@ export class CalendarComponent implements OnInit, OnDestroy {
     return { minutes, level };
   });
 
+  // Computed: current day as CalendarDay (for day view)
+  dayViewDay = computed<CalendarDay>(() => {
+    const date = this.currentDate();
+    const dayEvents = this.getEventsForDay(this.events(), date);
+    const workEvents = dayEvents.filter(e => e.isWorkEvent);
+    const workloadMinutes = this.calculateWorkMinutes(workEvents, date);
+    const workloadHours = workloadMinutes / 60;
+    const thresholds = this.dataService.settings().thresholds;
+    const workloadLevel = getWorkloadLevel(workloadHours, 'daily', thresholds);
+
+    return {
+      date,
+      isCurrentMonth: true,
+      isToday: isToday(date),
+      isSelected: true,
+      events: dayEvents,
+      workloadLevel,
+      workloadMinutes,
+    };
+  });
+
   /**
    * Calculate total work minutes for events on a specific day
    */
@@ -1760,21 +1781,28 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   // Get service label from event
-  getServiceLabel(event: CalendarEvent): string {
-    if (event.serviceInfo?.type) {
-      const serviceType = event.serviceInfo.type;
-      const labels: Record<string, string> = {
-        'drop-in': 'Drop-in Visit',
-        'walk': 'Dog Walking',
-        'overnight': 'Overnight Stay',
-        'housesit': 'House Sitting',
-        'meet-greet': 'Meet & Greet',
-        'nail-trim': 'Nail Trim',
-        'other': 'Other Service',
-      };
-      return labels[serviceType] || serviceType;
-    }
-    return '';
+  getServiceLabel(serviceType: string): string {
+    const labels: Record<string, string> = {
+      'drop-in': 'Drop-in Visit',
+      'walk': 'Dog Walking',
+      'overnight': 'Overnight Stay',
+      'housesit': 'House Sitting',
+      'meet-greet': 'Meet & Greet',
+      'nail-trim': 'Nail Trim',
+      'other': 'Other Service',
+    };
+    return labels[serviceType] || serviceType;
+  }
+
+  // Get workload bar width percentage
+  getWorkloadBarWidth(minutes: number): number {
+    const maxMinutes = 8 * 60; // 8 hours
+    return Math.min((minutes / maxMinutes) * 100, 100);
+  }
+
+  // Select day from week view
+  selectDayFromWeek(day: CalendarDay): void {
+    this.selectDay(day);
   }
 
   // Event position calculation for time grid (week/day views)

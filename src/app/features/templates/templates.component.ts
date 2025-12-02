@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -65,7 +65,7 @@ import { TemplateDialogComponent, TemplateDialogData } from './template-dialog.c
         </mat-form-field>
 
         <div class="filter-chips">
-          <mat-chip-listbox [(value)]="selectedType" (change)="onFilterChange()">
+          <mat-chip-listbox [value]="selectedType()" (selectionChange)="onTypeChange($event)">
             <mat-chip-option value="">All</mat-chip-option>
             @for (type of serviceTypes; track type.value) {
               <mat-chip-option [value]="type.value">{{ type.label }}</mat-chip-option>
@@ -75,7 +75,7 @@ import { TemplateDialogComponent, TemplateDialogData } from './template-dialog.c
       </div>
 
       @if (filteredTemplates().length === 0) {
-        @if (searchQuery || selectedType) {
+        @if (searchQuery || selectedType()) {
           <app-empty-state
             icon="search_off"
             title="No templates found"
@@ -365,7 +365,7 @@ export class TemplatesComponent {
 
   // Search and filter
   searchQuery = '';
-  selectedType: TemplateType | '' = '';
+  selectedType: WritableSignal<TemplateType | ''> = signal('');
 
   serviceTypes = [
     { value: 'drop-in' as TemplateType, label: 'Drop-In' },
@@ -401,8 +401,8 @@ export class TemplatesComponent {
     }
 
     // Filter by type
-    if (this.selectedType) {
-      result = result.filter(t => t.type === this.selectedType);
+    if (this.selectedType()) {
+      result = result.filter(t => t.type === this.selectedType());
     }
 
     return result;
@@ -411,6 +411,10 @@ export class TemplatesComponent {
   onSearchChange(): void {
     // Trigger computed recalculation
     this.templates.update(t => [...t]);
+  }
+
+  onTypeChange(event: any): void {
+    this.selectedType.set(event.value || '');
   }
 
   onFilterChange(): void {
@@ -425,7 +429,7 @@ export class TemplatesComponent {
 
   clearFilters(): void {
     this.searchQuery = '';
-    this.selectedType = '';
+    this.selectedType.set('');
     this.onSearchChange();
   }
 

@@ -56,7 +56,7 @@ import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date
             (keydown.enter)="navigateToCalendar('today')"
             tabindex="0"
             role="button"
-            aria-label="Today's appointments: {{ todayStats().eventCount }}. Click to view in calendar."
+            [attr.aria-label]="getTodayAriaLabel()"
           >
             <mat-card-content>
               <div class="stat-icon">
@@ -76,7 +76,7 @@ import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date
             (keydown.enter)="navigateToCalendar('today')"
             tabindex="0"
             role="button"
-            aria-label="Work hours today: {{ todayStats().hoursFormatted }}. Click to view in calendar."
+            [attr.aria-label]="'Work hours today: ' + todayStats().hoursFormatted + '. Click to view in calendar.'"
           >
             <mat-card-content>
               <div class="stat-icon">
@@ -97,7 +97,7 @@ import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date
             (keydown.enter)="navigateToAnalytics()"
             tabindex="0"
             role="button"
-            aria-label="This week: {{ weekStats().hoursFormatted }}, status {{ weekStats().levelLabel }}. Click to view analytics."
+            [attr.aria-label]="'This week: ' + weekStats().hoursFormatted + ', status ' + weekStats().levelLabel + '. Click to view analytics.'"
           >
             <mat-card-content>
               <div class="stat-icon" [style.background]="weekStats().levelColor">
@@ -117,7 +117,7 @@ import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date
             (keydown.enter)="navigateToCalendar('week')"
             tabindex="0"
             role="button"
-            aria-label="Visits this week: {{ weekStats().eventCount }}. Click to view in calendar."
+            [attr.aria-label]="'Visits this week: ' + weekStats().eventCount + '. Click to view in calendar.'"
           >
             <mat-card-content>
               <div class="stat-icon visits-icon">
@@ -929,5 +929,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       label += `, client: ${event.clientName}`;
     }
     return label;
+  }
+
+  getTodayAriaLabel(): string {
+    return `Today's appointments: ${this.todayStats().eventCount}. Click to view in calendar.`;
   }
 }
