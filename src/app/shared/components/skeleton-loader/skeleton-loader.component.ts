@@ -51,12 +51,12 @@ import { CommonModule } from '@angular/common';
         <div class="skeleton-calendar">
           <div class="skeleton-calendar-header">
             @for (i of [1,2,3,4,5,6,7]; track i) {
-              <div class="skeleton skeleton-text" style="width: 30px"></div>
+              <div class="skeleton skeleton-text" style="width: 30px; height: 12px"></div>
             }
           </div>
           <div class="skeleton-calendar-grid">
-            @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14]; track i) {
-              <div class="skeleton skeleton-card" style="height: 60px"></div>
+            @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35]; track i) {
+              <div class="skeleton skeleton-calendar-cell"></div>
             }
           </div>
         </div>
@@ -67,6 +67,14 @@ import { CommonModule } from '@angular/common';
     }
   `,
   styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .skeleton-wrapper {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -123,22 +131,38 @@ import { CommonModule } from '@angular/common';
     }
 
     .skeleton-calendar {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      min-height: 0;
+      max-height: 100%;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--outline-variant);
+      overflow: hidden;
     }
 
     .skeleton-calendar-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      justify-items: center;
+      background: var(--surface-container);
+      border-bottom: 1px solid var(--outline-variant);
+      flex-shrink: 0;
+    }
+
+    .skeleton-calendar-header > div {
+      padding: 12px;
+      text-align: center;
     }
 
     .skeleton-calendar-grid {
+      flex: 1;
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 0;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .skeleton {
@@ -159,6 +183,17 @@ import { CommonModule } from '@angular/common';
 
     .skeleton-card {
       border-radius: 12px;
+    }
+
+    .skeleton-calendar-cell {
+      border-right: 1px solid var(--outline-variant);
+      border-bottom: 1px solid var(--outline-variant);
+      border-radius: 0;
+      min-height: 120px;
+    }
+
+    .skeleton-calendar-cell:nth-child(7n) {
+      border-right: none;
     }
 
     .skeleton-text {

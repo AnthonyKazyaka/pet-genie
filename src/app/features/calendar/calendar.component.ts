@@ -94,12 +94,6 @@ interface CalendarDay {
         </div>
       </header>
 
-      @if (isLoading()) {
-        <div class="loading-overlay">
-          <app-skeleton-loader type="calendar"></app-skeleton-loader>
-        </div>
-      }
-
       @if (!isConnected()) {
         <app-empty-state
           icon="cloud_off"
@@ -109,6 +103,10 @@ interface CalendarDay {
           actionLink="/settings"
           actionIcon="settings"
         ></app-empty-state>
+      } @else if (isLoading()) {
+        <div class="loading-overlay">
+          <app-skeleton-loader type="calendar"></app-skeleton-loader>
+        </div>
       } @else {
         <div class="calendar-layout">
           <!-- Mini Calendar (sidebar) -->
@@ -221,8 +219,12 @@ interface CalendarDay {
                               [matTooltip]="getEventTooltip(event)"
                               (click)="showEventDetails(event)"
                             >
+                              <mat-icon class="chip-icon">{{ event.isWorkEvent ? 'pets' : 'event' }}</mat-icon>
                               <span class="event-time">{{ format(event.start, 'h:mma').toLowerCase() }}</span>
-                              {{ event.title }}
+                              <span class="event-title">{{ event.title }}</span>
+                              @if (event.clientName) {
+                                <span class="event-client">· {{ event.clientName }}</span>
+                              }
                             </div>
                           }
                           @if (day.events.length > 3) {
@@ -451,6 +453,70 @@ interface CalendarDay {
               </div>
             </aside>
           }
+
+          @if (selectedDayForDetails()) {
+            <aside class="day-details-sidebar" role="complementary" aria-label="Day details">
+              <div class="sidebar-header">
+                <h3>{{ format(selectedDayForDetails()!.date, 'EEEE, MMMM d') }}</h3>
+                <div class="header-actions">
+                  <button mat-icon-button (click)="viewDayFullscreen(selectedDayForDetails()!)" 
+                          aria-label="View full day" matTooltip="Full day view">
+                    <mat-icon>open_in_full</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="closeDayDetails()" aria-label="Close">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              </div>
+              <div class="sidebar-content">
+                @if (selectedDayForDetails()!.events.length === 0) {
+                  <div class="empty-day">
+                    <mat-icon>event_available</mat-icon>
+                    <p>No appointments scheduled</p>
+                  </div>
+                } @else {
+                  <div class="day-summary">
+                    <div class="summary-stat">
+                      <mat-icon>event</mat-icon>
+                      <span>{{ selectedDayForDetails()!.events.length }} appointment{{ selectedDayForDetails()!.events.length !== 1 ? 's' : '' }}</span>
+                    </div>
+                    @if (selectedDayForDetails()!.workloadMinutes > 0) {
+                      <div class="summary-stat">
+                        <mat-icon>schedule</mat-icon>
+                        <span>{{ (selectedDayForDetails()!.workloadMinutes / 60).toFixed(1) }} hours</span>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="day-events-list">
+                    @for (event of selectedDayForDetails()!.events; track event.id) {
+                      <div class="day-event-item" (click)="showEventDetails(event)">
+                        <div class="event-time">
+                          {{ format(event.start, 'h:mm a') }}
+                        </div>
+                        <div class="event-info">
+                          <div class="event-title">
+                            <mat-icon class="event-icon" [class.work-icon]="event.isWorkEvent">
+                              {{ event.isWorkEvent ? 'pets' : 'event' }}
+                            </mat-icon>
+                            {{ event.title }}
+                          </div>
+                          @if (event.clientName) {
+                            <div class="event-client">{{ event.clientName }}</div>
+                          }
+                          @if (event.serviceInfo) {
+                            <div class="event-service">
+                              {{ getServiceLabel(event.serviceInfo.type) }} · {{ event.serviceInfo.duration }}min
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </aside>
+          }
         </div>
       }
     </div>
@@ -471,6 +537,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
   isLoading = signal(false);
   isMobile = signal(false);
   selectedEvent = signal<CalendarEvent | null>(null);
+  selectedDayForDetails = signal<CalendarDay | null>(null);
 
   // Events
   events = signal<CalendarEvent[]>([]);
@@ -743,8 +810,20 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   selectDay(day: CalendarDay): void {
+    // Open day details panel instead of switching view
+    this.selectedDayForDetails.set(day);
+    this.selectedDate.set(day.date);
+  }
+
+  closeDayDetails(): void {
+    this.selectedDayForDetails.set(null);
+  }
+
+  viewDayFullscreen(day: CalendarDay): void {
+    // Switch to full day view
     this.currentDate.set(day.date);
     this.viewMode = 'day';
+    this.selectedDayForDetails.set(null);
   }
 
   getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
@@ -863,10 +942,11 @@ export class CalendarComponent implements OnInit, OnDestroy {
   selectMiniDay(day: CalendarDay): void {
     this.selectedDate.set(day.date);
     this.currentDate.set(day.date);
-    if (this.viewMode === 'month') {
-      this.viewMode = 'day';
+    // Open day details panel instead of switching view
+    const calendarDay = this.calendarDays().find(d => isSameDay(d.date, day.date));
+    if (calendarDay) {
+      this.selectedDayForDetails.set(calendarDay);
     }
-    this.loadEvents();
   }
 
   // Week number helper

@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -199,6 +199,8 @@ interface Breadcrumb {
   `,
 })
 export class AppShellComponent {
+  @ViewChild('sidenav') sidenav!: MatSidenav;
+  
   private router = inject(Router);
   themeService = inject(ThemeService);
   private googleCalendarService = inject(GoogleCalendarService);
@@ -272,7 +274,12 @@ export class AppShellComponent {
   }
 
   toggleSidenav(): void {
-    this.sidenavOpened.update((v) => !v);
+    if (this.sidenav) {
+      this.sidenav.toggle();
+      this.sidenavOpened.set(this.sidenav.opened);
+    } else {
+      this.sidenavOpened.update((v) => !v);
+    }
   }
 
   toggleSidenavExpanded(): void {
