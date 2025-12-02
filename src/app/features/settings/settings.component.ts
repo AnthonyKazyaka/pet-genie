@@ -1,6 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,8 +11,11 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { DataService } from '../../core/services';
-import { DEFAULT_THRESHOLDS } from '../../models';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatListModule } from '@angular/material/list';
+import { DataService, GoogleCalendarService } from '../../core/services';
+import { DEFAULT_THRESHOLDS, GoogleCalendar } from '../../models';
 
 @Component({
   selector: 'app-settings',
@@ -28,6 +32,9 @@ import { DEFAULT_THRESHOLDS } from '../../models';
     MatSlideToggleModule,
     MatDividerModule,
     MatSnackBarModule,
+    MatCheckboxModule,
+    MatProgressSpinnerModule,
+    MatListModule,
   ],
   template: `
     <div class="settings-container">
@@ -46,27 +53,72 @@ import { DEFAULT_THRESHOLDS } from '../../models';
         <mat-card-content>
           <div class="connection-status" [class.connected]="isConnected()">
             <mat-icon>{{ isConnected() ? 'check_circle' : 'error_outline' }}</mat-icon>
-            <span>{{ isConnected() ? 'Connected' : 'Not connected' }}</span>
+            <span>{{ isConnected() ? 'Connected to Google Calendar' : 'Not connected' }}</span>
           </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Google Client ID</mat-label>
-            <input
-              matInput
-              [(ngModel)]="googleClientId"
-              placeholder="Enter your Google OAuth Client ID"
-            />
-            <mat-hint>Required for Google Calendar integration</mat-hint>
-          </mat-form-field>
+          @if (!isConnected()) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Google Client ID</mat-label>
+              <input
+                matInput
+                [(ngModel)]="googleClientId"
+                placeholder="Enter your Google OAuth Client ID"
+              />
+              <mat-hint>
+                <a href="https://console.cloud.google.com/apis/credentials" target="_blank">
+                  Get a Client ID from Google Cloud Console
+                </a>
+              </mat-hint>
+            </mat-form-field>
+          }
+
+          @if (isConnected() && calendars().length > 0) {
+            <div class="calendar-selection">
+              <h3>Select calendars to sync</h3>
+              <mat-selection-list [(ngModel)]="selectedCalendars">
+                @for (calendar of calendars(); track calendar.id) {
+                  <mat-list-option [value]="calendar.id">
+                    <span matListItemTitle>{{ calendar.summary }}</span>
+                    @if (calendar.description) {
+                      <span matListItemLine>{{ calendar.description }}</span>
+                    }
+                  </mat-list-option>
+                }
+              </mat-selection-list>
+              <div class="calendar-actions">
+                <button mat-stroked-button (click)="selectAllCalendars()">Select All</button>
+                <button mat-stroked-button (click)="deselectAllCalendars()">Deselect All</button>
+                <button mat-raised-button color="primary" (click)="saveCalendarSelection()">
+                  Save Selection
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (isLoading()) {
+            <div class="loading-indicator">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>{{ loadingMessage() }}</span>
+            </div>
+          }
         </mat-card-content>
         <mat-card-actions>
           @if (isConnected()) {
+            <button mat-stroked-button (click)="refreshCalendars()" [disabled]="isLoading()">
+              <mat-icon>refresh</mat-icon>
+              Refresh Calendars
+            </button>
             <button mat-stroked-button color="warn" (click)="disconnect()">
               <mat-icon>link_off</mat-icon>
               Disconnect
             </button>
           } @else {
-            <button mat-raised-button color="primary" (click)="connect()" [disabled]="!googleClientId">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="connect()"
+              [disabled]="!googleClientId || isLoading()"
+            >
               <mat-icon>link</mat-icon>
               Connect Google Calendar
             </button>
@@ -269,6 +321,31 @@ import { DEFAULT_THRESHOLDS } from '../../models';
       width: 100%;
     }
 
+    .calendar-selection {
+      margin-top: 16px;
+    }
+
+    .calendar-selection h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .calendar-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      color: var(--on-surface-variant);
+    }
+
     .threshold-group {
       padding: 16px 0;
     }
@@ -357,19 +434,26 @@ import { DEFAULT_THRESHOLDS } from '../../models';
     }
   `],
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
   private dataService = inject(DataService);
+  private googleCalendarService = inject(GoogleCalendarService);
   private snackBar = inject(MatSnackBar);
 
+  // Google Calendar state
   isConnected = signal(false);
+  isLoading = signal(false);
+  loadingMessage = signal('');
+  calendars = signal<GoogleCalendar[]>([]);
+  selectedCalendars: string[] = [];
   googleClientId = '';
 
+  // Settings state
   thresholds = { ...DEFAULT_THRESHOLDS };
   includeTravelTime = true;
   use24HourTime = false;
   showWeekNumbers = false;
 
-  constructor() {
+  async ngOnInit(): Promise<void> {
     // Load current settings
     const settings = this.dataService.settings();
     this.googleClientId = settings.googleClientId;
@@ -377,16 +461,121 @@ export class SettingsComponent {
     this.includeTravelTime = settings.includeTravelTime;
     this.use24HourTime = settings.timeFormat === '24h';
     this.showWeekNumbers = settings.showWeekNumbers;
+    this.selectedCalendars = [...settings.selectedCalendars];
+
+    // Check if already signed in and initialize
+    if (this.googleClientId) {
+      await this.initializeGoogleApi();
+    }
   }
 
-  connect(): void {
-    // TODO: Implement Google OAuth flow
-    this.showMessage('Google Calendar connection coming soon!');
+  private async initializeGoogleApi(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      this.loadingMessage.set('Initializing Google API...');
+
+      await this.googleCalendarService.initialize(this.googleClientId);
+
+      // Check if already signed in
+      if (this.googleCalendarService.isSignedIn()) {
+        this.isConnected.set(true);
+        await this.loadCalendars();
+      }
+    } catch (error) {
+      console.error('Failed to initialize Google API:', error);
+    } finally {
+      this.isLoading.set(false);
+      this.loadingMessage.set('');
+    }
   }
 
-  disconnect(): void {
-    this.isConnected.set(false);
-    this.showMessage('Disconnected from Google Calendar');
+  async connect(): Promise<void> {
+    if (!this.googleClientId) {
+      this.showMessage('Please enter a Google Client ID');
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      this.loadingMessage.set('Connecting to Google...');
+
+      // Save client ID
+      this.dataService.updateSettings({ googleClientId: this.googleClientId });
+
+      // Initialize and sign in
+      await this.googleCalendarService.initialize(this.googleClientId);
+      await this.googleCalendarService.signIn();
+
+      this.isConnected.set(true);
+      await this.loadCalendars();
+
+      this.showMessage('Successfully connected to Google Calendar!');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to connect';
+      this.showMessage(message);
+      console.error('Connection error:', error);
+    } finally {
+      this.isLoading.set(false);
+      this.loadingMessage.set('');
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    try {
+      await this.googleCalendarService.signOut();
+      this.isConnected.set(false);
+      this.calendars.set([]);
+      this.selectedCalendars = [];
+      this.dataService.updateSettings({ selectedCalendars: [] });
+      this.dataService.clearEventsCache();
+      this.showMessage('Disconnected from Google Calendar');
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      this.showMessage('Failed to disconnect');
+    }
+  }
+
+  async loadCalendars(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      this.loadingMessage.set('Loading calendars...');
+
+      const calendarList = await firstValueFrom(this.googleCalendarService.listCalendars());
+      this.calendars.set(calendarList);
+
+      // If no calendars selected yet, select primary by default
+      if (this.selectedCalendars.length === 0) {
+        const primary = calendarList.find(c => c.primary);
+        if (primary) {
+          this.selectedCalendars = [primary.id];
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load calendars:', error);
+      this.showMessage('Failed to load calendars');
+    } finally {
+      this.isLoading.set(false);
+      this.loadingMessage.set('');
+    }
+  }
+
+  async refreshCalendars(): Promise<void> {
+    await this.loadCalendars();
+    this.showMessage('Calendars refreshed');
+  }
+
+  selectAllCalendars(): void {
+    this.selectedCalendars = this.calendars().map(c => c.id);
+  }
+
+  deselectAllCalendars(): void {
+    this.selectedCalendars = [];
+  }
+
+  saveCalendarSelection(): void {
+    this.dataService.updateSettings({ selectedCalendars: this.selectedCalendars });
+    this.dataService.clearEventsCache(); // Clear cache when calendar selection changes
+    this.showMessage('Calendar selection saved');
   }
 
   saveThresholds(): void {

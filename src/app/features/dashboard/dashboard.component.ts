@@ -1,16 +1,21 @@
-import { Component, inject, computed, OnInit } from '@angular/core';
+import { Component, inject, computed, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { DataService, WorkloadService } from '../../core/services';
+import { DataService, WorkloadService, GoogleCalendarService, EventProcessorService } from '../../core/services';
+import { CalendarEvent, DateRange } from '../../models';
+import { firstValueFrom } from 'rxjs';
+import { format, startOfDay, endOfDay, addDays } from 'date-fns';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -351,17 +356,32 @@ import { DataService, WorkloadService } from '../../core/services';
     }
   `],
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private dataService = inject(DataService);
   private workloadService = inject(WorkloadService);
+  private googleCalendarService = inject(GoogleCalendarService);
+  private eventProcessor = inject(EventProcessorService);
 
-  isLoading = this.dataService.isLoading;
+  isLoading = signal(false);
+  events = signal<CalendarEvent[]>([]);
+
+  // Connection status
+  isConnected = computed(() => this.googleCalendarService.isSignedIn());
 
   todayStats = computed(() => {
-    const metrics = this.workloadService.getTodayMetrics();
+    const todayEvents = this.events().filter(e => {
+      const today = startOfDay(new Date());
+      const tomorrow = startOfDay(addDays(new Date(), 1));
+      return e.start >= today && e.start < tomorrow;
+    });
+    const workEvents = todayEvents.filter(e => e.isWorkEvent);
+    const totalMinutes = workEvents.reduce((sum, e) => {
+      return sum + this.eventProcessor.calculateEventDurationForDay(e, new Date());
+    }, 0);
+
     return {
-      eventCount: metrics.eventCount,
-      hoursFormatted: this.workloadService.formatHours(metrics.totalTime / 60),
+      eventCount: workEvents.length,
+      hoursFormatted: this.workloadService.formatHours(totalMinutes / 60),
     };
   });
 
@@ -378,23 +398,46 @@ export class DashboardComponent {
   });
 
   upcomingEvents = computed(() => {
-    const events = this.dataService.workEvents();
+    const allEvents = this.events();
     const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const weekFromNow = addDays(now, 7);
 
-    return events
-      .filter((e) => e.start >= now && e.start <= weekFromNow)
+    return allEvents
+      .filter((e) => e.isWorkEvent && e.start >= now && e.start <= weekFromNow)
       .sort((a, b) => a.start.getTime() - b.start.getTime())
       .slice(0, 10);
   });
 
+  async ngOnInit(): Promise<void> {
+    if (this.googleCalendarService.isSignedIn()) {
+      await this.loadEvents();
+    }
+  }
+
+  async loadEvents(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+
+      const settings = this.dataService.settings();
+      const dateRange: DateRange = {
+        start: startOfDay(new Date()),
+        end: endOfDay(addDays(new Date(), 14)), // Next 2 weeks
+      };
+
+      const events = await firstValueFrom(
+        this.googleCalendarService.fetchEventsFromCalendars(settings.selectedCalendars, dateRange)
+      );
+
+      const processedEvents = this.eventProcessor.processEvents(events ?? []);
+      this.events.set(processedEvents);
+    } catch (error) {
+      console.error('Failed to load events:', error);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   formatEventTime(date: Date): string {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    return format(date, 'EEE, MMM d, h:mm a');
   }
 }

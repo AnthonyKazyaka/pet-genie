@@ -6,6 +6,8 @@
 import { CalendarEvent } from './event.model';
 import { WorkloadLevel } from './workload.model';
 
+export type CalendarViewMode = 'month' | 'week' | 'day' | 'list';
+
 export interface CalendarDay {
   date: Date;
   dayOfMonth: number;
