@@ -1,0 +1,63 @@
+.confirm-dialog {
+  min-width: 320px;
+  max-width: 480px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 0;
+}
+
+.dialog-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.dialog-icon.warn {
+  color: var(--error);
+}
+
+.dialog-icon.primary {
+  color: var(--primary);
+}
+
+.dialog-icon.accent {
+  color: var(--secondary);
+}
+
+h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+mat-dialog-content {
+  padding: 16px 24px;
+}
+
+mat-dialog-content p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  line-height: 1.6;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}
+
+[data-theme="dark"] .dialog-icon.warn {
+  color: #FCA5A5;
+}
+
+[data-theme="dark"] .dialog-icon.primary {
+  color: var(--primary);
+}
+
+[data-theme="dark"] .dialog-icon.accent {
+  color: var(--secondary);
+}

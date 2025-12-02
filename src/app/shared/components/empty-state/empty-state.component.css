@@ -1,0 +1,82 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-state.compact {
+  padding: 24px 16px;
+}
+
+.empty-illustration {
+  margin-bottom: 24px;
+}
+
+.illustration-image {
+  max-width: 200px;
+  max-height: 160px;
+  opacity: 0.8;
+}
+
+.compact .illustration-image {
+  max-width: 120px;
+  max-height: 100px;
+}
+
+.icon-container {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--surface-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compact .icon-container {
+  width: 56px;
+  height: 56px;
+}
+
+.icon-container mat-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--outline);
+}
+
+.compact .icon-container mat-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.empty-content h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+.compact .empty-content h3 {
+  font-size: 16px;
+}
+
+.empty-content p {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  max-width: 400px;
+}
+
+.compact .empty-content p {
+  margin-bottom: 16px;
+}
+
+button mat-icon,
+a mat-icon {
+  margin-right: 8px;
+}

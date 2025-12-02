@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AppShellComponent } from './layout';
 import { Amplify } from 'aws-amplify';
+import { DataService, GoogleCalendarService } from './core/services';
 
 @Component({
   selector: 'app-root',
@@ -11,6 +12,9 @@ import { Amplify } from 'aws-amplify';
 })
 export class AppComponent implements OnInit {
   title = 'pet-genie';
+  
+  private dataService = inject(DataService);
+  private googleCalendarService = inject(GoogleCalendarService);
 
   async ngOnInit(): Promise<void> {
     try {
@@ -19,6 +23,27 @@ export class AppComponent implements OnInit {
       Amplify.configure(outputs.default || outputs);
     } catch (error) {
       console.warn('Amplify outputs not found. Run `npx ampx sandbox` to generate.');
+    }
+
+    // Initialize Google Calendar service if we have credentials
+    await this.initializeGoogleCalendar();
+  }
+
+  private async initializeGoogleCalendar(): Promise<void> {
+    try {
+      const settings = this.dataService.settings();
+      const googleClientId = settings.googleClientId;
+      
+      // Check if we have a client ID and stored token
+      if (googleClientId && this.googleCalendarService.authState().accessToken) {
+        // Initialize the Google Calendar API
+        await this.googleCalendarService.initialize(googleClientId);
+        console.log('Google Calendar API initialized on startup');
+      }
+    } catch (error) {
+      console.error('Failed to initialize Google Calendar on startup:', error);
+      // Clear the stored token if initialization fails
+      this.googleCalendarService.signOut();
     }
   }
 }
