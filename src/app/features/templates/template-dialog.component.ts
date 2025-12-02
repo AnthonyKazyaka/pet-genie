@@ -169,6 +169,7 @@ export interface TemplateDialogData {
       margin: 0;
       font-size: 20px;
       font-weight: 500;
+      color: var(--on-surface);
     }
 
     mat-dialog-content {

@@ -79,6 +79,7 @@ export interface ConfirmDialogData {
       margin: 0;
       font-size: 20px;
       font-weight: 500;
+      color: var(--on-surface);
     }
 
     mat-dialog-content {
@@ -94,6 +95,18 @@ export interface ConfirmDialogData {
     mat-dialog-actions {
       padding: 16px 24px;
       gap: 8px;
+    }
+
+    [data-theme="dark"] .dialog-icon.warn {
+      color: #FCA5A5;
+    }
+
+    [data-theme="dark"] .dialog-icon.primary {
+      color: var(--primary);
+    }
+
+    [data-theme="dark"] .dialog-icon.accent {
+      color: var(--secondary);
     }
   `]
 })

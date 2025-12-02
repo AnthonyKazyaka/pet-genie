@@ -128,6 +128,15 @@ html, body {
   color: var(--on-primary);
 }
 
+.mat-toolbar.mat-primary .mat-mdc-icon-button {
+  --mdc-icon-button-icon-color: var(--on-primary);
+  color: var(--on-primary);
+}
+
+.mat-toolbar.mat-primary mat-icon {
+  color: var(--on-primary);
+}
+
 .mat-mdc-raised-button.mat-primary {
   --mdc-protected-button-container-color: var(--primary);
   --mdc-protected-button-label-text-color: var(--on-primary);
@@ -140,10 +149,11 @@ html, body {
 
 /* Card styles */
 .mat-mdc-card {
-  --mdc-elevated-card-container-color: white;
+  --mdc-elevated-card-container-color: var(--surface-container-lowest);
   border-radius: 12px !important;
   box-shadow: var(--shadow-sm) !important;
   border: 1px solid var(--outline-variant);
+  color: var(--on-surface);
 }
 
 .mat-mdc-card:hover {
@@ -152,13 +162,16 @@ html, body {
 
 /* Sidenav styles */
 .mat-drawer {
-  background: white;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
 }
 
 /* Form field styles */
 .mat-mdc-form-field {
   --mdc-outlined-text-field-outline-color: var(--outline);
   --mdc-outlined-text-field-focus-outline-color: var(--primary);
+  --mdc-outlined-text-field-label-text-color: var(--on-surface-variant);
+  --mdc-outlined-text-field-input-text-color: var(--on-surface);
 }
 
 /* Slider styles */
@@ -168,12 +181,162 @@ html, body {
   --mdc-slider-hover-handle-color: var(--primary);
   --mdc-slider-active-track-color: var(--primary);
   --mdc-slider-inactive-track-color: var(--primary-container);
+  --mdc-slider-with-tick-marks-active-container-color: var(--on-primary);
+  --mdc-slider-with-tick-marks-inactive-container-color: var(--on-primary-container);
+}
+
+/* List and navigation styles */
+.mat-mdc-list-item,
+.mat-mdc-list-option,
+.mat-mdc-nav-list .mat-mdc-list-item {
+  color: var(--on-surface);
+}
+
+.mat-mdc-list-item-icon,
+.mat-icon {
+  color: var(--on-surface-variant);
+}
+
+/* Button styles */
+.mat-mdc-button,
+.mat-mdc-outlined-button,
+.mat-mdc-stroked-button {
+  --mdc-text-button-label-text-color: var(--primary);
+  --mdc-outlined-button-label-text-color: var(--on-surface);
+  --mdc-outlined-button-outline-color: var(--outline);
+}
+
+.mat-mdc-button:hover,
+.mat-mdc-outlined-button:hover,
+.mat-mdc-stroked-button:hover {
+  --mdc-text-button-label-text-color: var(--primary);
+  --mdc-outlined-button-label-text-color: var(--on-surface);
+}
+
+.mat-mdc-button.mat-primary {
+  --mdc-text-button-label-text-color: var(--primary);
+}
+
+.mat-mdc-button.mat-warn,
+.mat-mdc-outlined-button.mat-warn,
+.mat-mdc-stroked-button.mat-warn {
+  --mdc-text-button-label-text-color: var(--error);
+  --mdc-outlined-button-label-text-color: var(--error);
+  --mdc-outlined-button-outline-color: var(--error);
+}
+
+.mat-mdc-raised-button.mat-warn,
+.mat-mdc-unelevated-button.mat-warn {
+  --mdc-protected-button-container-color: var(--error);
+  --mdc-protected-button-label-text-color: var(--on-error);
+  --mdc-filled-button-container-color: var(--error);
+  --mdc-filled-button-label-text-color: var(--on-error);
+}
+
+[data-theme="dark"] .mat-mdc-button,
+[data-theme="dark"] .mat-mdc-outlined-button,
+[data-theme="dark"] .mat-mdc-stroked-button {
+  --mdc-outlined-button-label-text-color: var(--on-surface);
+}
+
+[data-theme="dark"] .mat-mdc-button.mat-warn,
+[data-theme="dark"] .mat-mdc-outlined-button.mat-warn,
+[data-theme="dark"] .mat-mdc-stroked-button.mat-warn {
+  --mdc-text-button-label-text-color: #FCA5A5;
+  --mdc-outlined-button-label-text-color: #FCA5A5;
+  --mdc-outlined-button-outline-color: #FCA5A5;
+}
+
+[data-theme="dark"] .mat-mdc-raised-button.mat-warn,
+[data-theme="dark"] .mat-mdc-unelevated-button.mat-warn {
+  --mdc-protected-button-container-color: #DC2626;
+  --mdc-protected-button-label-text-color: #FFFFFF;
+  --mdc-filled-button-container-color: #DC2626;
+  --mdc-filled-button-label-text-color: #FFFFFF;
+}
+
+.mat-mdc-icon-button {
+  --mdc-icon-button-icon-color: var(--on-surface-variant);
+  color: var(--on-surface-variant);
+}
+
+/* Select and dropdown styles */
+.mat-mdc-select {
+  color: var(--on-surface);
+  --mdc-filled-text-field-label-text-color: var(--on-surface-variant);
+}
+
+/* Progress indicators */
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: var(--primary);
+  --mdc-linear-progress-track-color: var(--primary-container);
+}
+
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--primary);
+}
+
+/* Divider */
+.mat-divider {
+  border-top-color: var(--outline-variant);
+}
+
+/* Expansion panel */
+.mat-expansion-panel {
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+}
+
+.mat-expansion-panel-header {
+  color: var(--on-surface);
+}
+
+.mat-expansion-panel-header-title,
+.mat-expansion-panel-header-description {
+  color: inherit;
+}
+
+/* Dialog */
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--surface-container-low);
+  --mdc-dialog-subhead-color: var(--on-surface);
+  --mdc-dialog-supporting-text-color: var(--on-surface-variant);
+}
+
+.mat-mdc-dialog-title {
+  color: var(--on-surface);
+}
+
+.mat-mdc-dialog-content {
+  color: var(--on-surface);
+}
+
+[data-theme="dark"] .mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--surface-container);
+}
+
+/* Tooltip */
+.mat-mdc-tooltip {
+  --mdc-plain-tooltip-container-color: var(--surface-container-high);
+  --mdc-plain-tooltip-supporting-text-color: var(--on-surface);
+}
+
+/* Checkbox */
+.mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: var(--on-primary);
+  --mdc-checkbox-selected-focus-icon-color: var(--primary);
+  --mdc-checkbox-selected-hover-icon-color: var(--primary);
+  --mdc-checkbox-selected-icon-color: var(--primary);
+  --mdc-checkbox-selected-pressed-icon-color: var(--primary);
+  --mdc-checkbox-unselected-focus-icon-color: var(--on-surface-variant);
+  --mdc-checkbox-unselected-hover-icon-color: var(--on-surface);
+  --mdc-checkbox-unselected-icon-color: var(--on-surface-variant);
 }
 
 /* Snackbar styles */
 .mat-mdc-snack-bar-container {
-  --mdc-snackbar-container-color: var(--on-surface);
-  --mdc-snackbar-supporting-text-color: white;
+  --mdc-snackbar-container-color: var(--surface-container-high);
+  --mdc-snackbar-supporting-text-color: var(--on-surface);
 }
 
 /* Workload indicator classes */
@@ -281,6 +444,52 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+/* Link styles */
+a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: var(--primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast) ease, text-decoration-color var(--transition-fast) ease;
+}
+
+a:hover {
+  color: var(--primary-container);
+  text-decoration-color: var(--primary-container);
+}
+
+a:visited {
+  color: var(--primary);
+}
+
+[data-theme="dark"] a {
+  color: var(--primary);
+  text-decoration-color: var(--primary);
+}
+
+[data-theme="dark"] a:hover {
+  color: #A5B4FC;
+  text-decoration-color: #A5B4FC;
+}
+
+[data-theme="dark"] a:visited {
+  color: var(--primary);
+}
+
+/* Links in Material hints and form fields */
+.mat-mdc-form-field mat-hint a,
+.mat-hint a {
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .mat-mdc-form-field mat-hint a,
+[data-theme="dark"] .mat-hint a {
+  color: #A5B4FC;
 }
 
 /* Skeleton loader animation */
@@ -407,11 +616,61 @@ textarea:focus-visible {
   --mdc-chip-label-text-color: var(--on-surface);
 }
 
-[data-theme="dark"] .mat-mdc-tab {
+/* Tab styling for both themes */
+.mat-mdc-tab {
+  --mdc-tab-indicator-active-indicator-color: var(--primary);
+  --mat-tab-header-active-label-text-color: var(--primary);
+  --mat-tab-header-inactive-label-text-color: var(--on-surface-variant);
+  --mat-tab-header-active-focus-label-text-color: var(--primary);
+  --mat-tab-header-inactive-focus-label-text-color: var(--on-surface);
+  --mat-tab-header-active-hover-label-text-color: var(--primary);
+  --mat-tab-header-inactive-hover-label-text-color: var(--on-surface);
+}
+
+.mat-mdc-tab .mdc-tab__text-label {
   color: var(--on-surface-variant);
 }
 
-[data-theme="dark"] .mat-mdc-tab.mdc-tab--active {
+.mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--primary);
+}
+
+.mat-mdc-tab .mdc-tab__icon {
+  color: var(--on-surface-variant);
+}
+
+.mat-mdc-tab.mdc-tab--active .mdc-tab__icon {
+  color: var(--primary);
+}
+
+.mat-mdc-tab-header {
+  --mat-tab-header-divider-color: var(--outline-variant);
+}
+
+.mat-mdc-tab-group {
+  --mat-tab-header-label-text-size: 14px;
+  --mat-tab-header-label-text-weight: 500;
+}
+
+[data-theme="dark"] .mat-mdc-tab {
+  --mat-tab-header-inactive-label-text-color: var(--on-surface-variant);
+  --mat-tab-header-inactive-focus-label-text-color: var(--on-surface);
+  --mat-tab-header-inactive-hover-label-text-color: var(--on-surface);
+}
+
+[data-theme="dark"] .mat-mdc-tab .mdc-tab__text-label {
+  color: var(--on-surface-variant);
+}
+
+[data-theme="dark"] .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--primary);
+}
+
+[data-theme="dark"] .mat-mdc-tab .mdc-tab__icon {
+  color: var(--on-surface-variant);
+}
+
+[data-theme="dark"] .mat-mdc-tab.mdc-tab--active .mdc-tab__icon {
   color: var(--primary);
 }
 

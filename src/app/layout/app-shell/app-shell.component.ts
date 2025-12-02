@@ -208,6 +208,8 @@ interface Breadcrumb {
       transition: width 0.2s ease;
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .app-sidenav.collapsed {
@@ -217,12 +219,14 @@ interface Breadcrumb {
     .sidenav-header {
       padding: 16px;
       border-bottom: 1px solid var(--outline-variant);
+      flex-shrink: 0;
     }
 
     .logo {
       display: flex;
       align-items: center;
       gap: 12px;
+      overflow: hidden;
     }
 
     .logo-icon {
@@ -233,6 +237,9 @@ interface Breadcrumb {
       font-size: 20px;
       font-weight: 600;
       color: var(--on-surface);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .logo-collapsed {
@@ -241,14 +248,25 @@ interface Breadcrumb {
     }
 
     mat-nav-list {
-      flex: 1;
+      flex: 1 1 auto;
       padding-top: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     mat-nav-list a {
       margin: 4px 8px;
       border-radius: 8px;
       transition: background-color var(--transition-fast) ease;
+      overflow: hidden;
+    }
+
+    mat-nav-list a mat-icon {
+      color: var(--on-surface-variant);
+    }
+
+    [data-theme="dark"] mat-nav-list a mat-icon {
+      color: var(--on-surface);
     }
 
     mat-nav-list a:focus-visible {
@@ -265,10 +283,30 @@ interface Breadcrumb {
     }
 
     .sidenav-footer {
-      padding: 8px;
+      padding: 16px 8px;
       border-top: 1px solid var(--outline-variant);
+      background: var(--surface-container);
       display: flex;
       justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    .sidenav-footer button {
+      transition: all var(--transition-fast) ease;
+    }
+
+    .sidenav-footer button mat-icon {
+      color: var(--on-surface-variant);
+    }
+
+    [data-theme="dark"] .sidenav-footer button mat-icon {
+      color: var(--on-surface);
+    }
+
+    .sidenav-footer button:hover {
+      background: var(--surface-container-high);
     }
 
     .app-content {
@@ -302,7 +340,7 @@ interface Breadcrumb {
     .breadcrumb-link {
       color: var(--on-primary);
       text-decoration: none;
-      opacity: 0.8;
+      opacity: 0.9;
       transition: opacity var(--transition-fast) ease;
     }
 
@@ -312,17 +350,32 @@ interface Breadcrumb {
 
     [data-theme="dark"] .breadcrumb-link {
       color: var(--on-surface);
+      opacity: 0.8;
+    }
+
+    [data-theme="dark"] .breadcrumb-link:hover {
+      opacity: 1;
     }
 
     .breadcrumb-separator {
       font-size: 18px;
       width: 18px;
       height: 18px;
-      opacity: 0.6;
+      color: var(--on-primary);
+      opacity: 0.7;
+    }
+
+    [data-theme="dark"] .breadcrumb-separator {
+      color: var(--on-surface-variant);
     }
 
     .breadcrumb-current {
       font-weight: 500;
+      color: var(--on-primary);
+    }
+
+    [data-theme="dark"] .breadcrumb-current {
+      color: var(--on-surface);
     }
 
     .spacer {

@@ -724,12 +724,33 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared';
       align-self: flex-start;
     }
 
+    mat-hint a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--primary);
+      text-decoration: underline;
+      font-weight: 500;
+      transition: color var(--transition-fast) ease;
+    }
+
+    mat-hint a:hover {
+      color: var(--primary-container);
+    }
+
+    [data-theme="dark"] mat-hint a {
+      color: #A5B4FC;
+    }
+
+    [data-theme="dark"] mat-hint a:hover {
+      color: #C7D2FE;
+    }
+
     .external-link {
       font-size: 14px;
       width: 14px;
       height: 14px;
       vertical-align: middle;
-      margin-left: 4px;
     }
 
     /* Calendar Selection */

@@ -133,6 +133,12 @@ export class GoogleCalendarService {
       // Load GIS (Google Identity Services)
       await this.loadGisClient(clientId);
 
+      // If we have a stored token, set it on the client
+      const storedToken = this.authStateSignal().accessToken;
+      if (storedToken && this.getGapi()?.client) {
+        this.getGapi().client.setToken({ access_token: storedToken });
+      }
+
       this.authStateSignal.update((state) => ({
         ...state,
         isInitialized: true,
@@ -358,6 +364,10 @@ export class GoogleCalendarService {
       return throwError(() => new Error('Not signed in'));
     }
 
+    if (!this.gapiInitialized || !this.getGapi()?.client?.calendar) {
+      return throwError(() => new Error('Google API not initialized'));
+    }
+
     return from(this.getGapi().client.calendar.calendarList.list()).pipe(
       map((response: any) => {
         const items = response.result.items || [];
@@ -374,6 +384,16 @@ export class GoogleCalendarService {
       }),
       catchError((error) => {
         console.error('Failed to list calendars:', error);
+        // If 401, token is invalid - clear it
+        if (error.status === 401 || error.result?.error?.code === 401) {
+          this.clearStoredToken();
+          this.authStateSignal.update((state) => ({
+            ...state,
+            accessToken: null,
+            tokenExpiry: null,
+            isSignedIn: false,
+          }));
+        }
         return throwError(() => error);
       })
     );
@@ -388,6 +408,10 @@ export class GoogleCalendarService {
   ): Observable<CalendarEvent[]> {
     if (!this.isSignedIn()) {
       return throwError(() => new Error('Not signed in'));
+    }
+
+    if (!this.gapiInitialized || !this.getGapi()?.client?.calendar) {
+      return throwError(() => new Error('Google API not initialized'));
     }
 
     return from(
@@ -407,6 +431,16 @@ export class GoogleCalendarService {
       map((events) => this.eventProcessor.processEvents(events)),
       catchError((error) => {
         console.error(`Failed to fetch events from ${calendarId}:`, error);
+        // If 401, token is invalid - clear it
+        if (error.status === 401 || error.result?.error?.code === 401) {
+          this.clearStoredToken();
+          this.authStateSignal.update((state) => ({
+            ...state,
+            accessToken: null,
+            tokenExpiry: null,
+            isSignedIn: false,
+          }));
+        }
         return of([]);
       })
     );
