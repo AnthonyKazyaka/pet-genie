@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import {
   DataService,
@@ -21,6 +22,7 @@ import {
   WORKLOAD_COLORS,
   getWorkloadLevel,
 } from '../../models';
+import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
 import { firstValueFrom } from 'rxjs';
 import {
   format,
@@ -79,6 +81,9 @@ interface DayOfWeekStats {
     MatButtonToggleModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    MatSnackBarModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   template: `
     <div class="analytics-container">
@@ -93,35 +98,60 @@ interface DayOfWeekStats {
             <mat-button-toggle value="month">This Month</mat-button-toggle>
             <mat-button-toggle value="3months">3 Months</mat-button-toggle>
           </mat-button-toggle-group>
-          <button mat-stroked-button (click)="exportToCSV()">
+          <button mat-stroked-button (click)="exportToCSV()" [disabled]="isLoading() || events().length === 0">
             <mat-icon>download</mat-icon>
-            Export CSV
+            Export
           </button>
         </div>
       </header>
 
       @if (!isConnected()) {
-        <mat-card class="connection-prompt">
+        <app-empty-state
+          icon="cloud_off"
+          title="Connect Google Calendar"
+          description="Connect your Google Calendar to view analytics about your pet sitting business."
+          actionLabel="Go to Settings"
+          actionLink="/settings"
+          actionIcon="settings"
+        ></app-empty-state>
+      } @else if (isLoading()) {
+        <!-- Loading Skeleton -->
+        <section class="summary-cards">
+          @for (i of [1,2,3,4]; track i) {
+            <mat-card class="summary-card skeleton">
+              <mat-card-content>
+                <div class="summary-icon skeleton-icon"></div>
+                <div class="summary-info">
+                  <div class="skeleton-text large"></div>
+                  <div class="skeleton-text small"></div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </section>
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <div class="skeleton-text medium"></div>
+          </mat-card-header>
           <mat-card-content>
-            <mat-icon>cloud_off</mat-icon>
-            <h2>Connect Google Calendar</h2>
-            <p>Connect your Google Calendar to view analytics about your pet sitting business.</p>
-            <a mat-raised-button color="primary" routerLink="/settings">
-              Go to Settings
-            </a>
+            <div class="skeleton-chart"></div>
           </mat-card-content>
         </mat-card>
-      } @else if (isLoading()) {
-        <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading analytics data...</p>
-        </div>
+      } @else if (events().filter(e => e.isWorkEvent).length === 0) {
+        <app-empty-state
+          icon="bar_chart"
+          title="No data yet"
+          description="Once you have pet sitting appointments in your calendar, you'll see analytics here."
+          actionLabel="View Calendar"
+          actionLink="/calendar"
+          actionIcon="event"
+        ></app-empty-state>
       } @else {
         <!-- Summary Cards -->
         <section class="summary-cards">
           <mat-card class="summary-card">
             <mat-card-content>
-              <div class="summary-icon">
+              <div class="summary-icon appointments">
                 <mat-icon>event</mat-icon>
               </div>
               <div class="summary-info">
@@ -133,7 +163,7 @@ interface DayOfWeekStats {
 
           <mat-card class="summary-card">
             <mat-card-content>
-              <div class="summary-icon">
+              <div class="summary-icon hours">
                 <mat-icon>schedule</mat-icon>
               </div>
               <div class="summary-info">
@@ -145,7 +175,7 @@ interface DayOfWeekStats {
 
           <mat-card class="summary-card">
             <mat-card-content>
-              <div class="summary-icon">
+              <div class="summary-icon clients">
                 <mat-icon>pets</mat-icon>
               </div>
               <div class="summary-info">
@@ -157,7 +187,7 @@ interface DayOfWeekStats {
 
           <mat-card class="summary-card">
             <mat-card-content>
-              <div class="summary-icon">
+              <div class="summary-icon average">
                 <mat-icon>trending_up</mat-icon>
               </div>
               <div class="summary-info">
@@ -175,16 +205,18 @@ interface DayOfWeekStats {
             <mat-card-subtitle>Daily work hours over time</mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
-            <div class="bar-chart">
+            <div class="bar-chart" role="img" aria-label="Bar chart showing daily workload">
               @for (day of dailyStats(); track day.date.toISOString()) {
                 <div
                   class="bar-container"
                   [matTooltip]="getBarTooltip(day)"
+                  role="listitem"
+                  [attr.aria-label]="getBarTooltip(day)"
                 >
                   <div
                     class="bar"
                     [style.height.%]="getBarHeight(day.workMinutes)"
-                    [style.background]="getWorkloadColor(day.level)"
+                    [class]="'workload-' + day.level"
                   ></div>
                   <span class="bar-label">{{ day.label }}</span>
                 </div>
@@ -192,19 +224,19 @@ interface DayOfWeekStats {
             </div>
             <div class="chart-legend">
               <div class="legend-item">
-                <span class="legend-color" style="background: #10B981"></span>
+                <span class="legend-color workload-comfortable"></span>
                 Comfortable
               </div>
               <div class="legend-item">
-                <span class="legend-color" style="background: #F59E0B"></span>
+                <span class="legend-color workload-busy"></span>
                 Busy
               </div>
               <div class="legend-item">
-                <span class="legend-color" style="background: #F97316"></span>
+                <span class="legend-color workload-high"></span>
                 High
               </div>
               <div class="legend-item">
-                <span class="legend-color" style="background: #EF4444"></span>
+                <span class="legend-color workload-burnout"></span>
                 Burnout
               </div>
             </div>
@@ -220,15 +252,22 @@ interface DayOfWeekStats {
             </mat-card-header>
             <mat-card-content>
               <div class="donut-chart-container">
-                <div class="donut-chart">
-                  @for (segment of serviceBreakdown(); track segment.type; let i = $index) {
-                    <div
-                      class="donut-segment"
-                      [style.--segment-color]="segment.color"
-                      [style.--segment-percentage]="segment.percentage"
-                      [style.--segment-offset]="getSegmentOffset(i)"
-                    ></div>
-                  }
+                <div class="donut-chart" role="img" aria-label="Donut chart showing service breakdown">
+                  <svg viewBox="0 0 100 100" class="donut-svg">
+                    @for (segment of serviceBreakdown(); track segment.type; let i = $index) {
+                      <circle
+                        class="donut-segment-circle"
+                        [attr.stroke]="segment.color"
+                        [attr.stroke-dasharray]="getStrokeDasharray(segment.percentage)"
+                        [attr.stroke-dashoffset]="getStrokeDashoffset(i)"
+                        fill="transparent"
+                        stroke-width="10"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                      />
+                    }
+                  </svg>
                   <div class="donut-center">
                     <span class="donut-total">{{ summaryStats().totalEvents }}</span>
                     <span class="donut-label">visits</span>
@@ -239,6 +278,7 @@ interface DayOfWeekStats {
                     <div class="service-item">
                       <span class="service-color" [style.background]="service.color"></span>
                       <span class="service-name">{{ service.type }}</span>
+                      <span class="service-percentage">{{ service.percentage | number:'1.0-0' }}%</span>
                       <span class="service-count">{{ service.count }}</span>
                     </div>
                   }
@@ -262,6 +302,7 @@ interface DayOfWeekStats {
                       <div
                         class="day-bar"
                         [style.width.%]="getDayBarWidth(day.averageMinutes)"
+                        [class.highlight]="day.averageMinutes === maxDayMinutes()"
                       ></div>
                     </div>
                     <span class="day-hours">{{ formatMinutes(day.averageMinutes) }}</span>
@@ -280,24 +321,37 @@ interface DayOfWeekStats {
           </mat-card-header>
           <mat-card-content>
             @if (topClients().length === 0) {
-              <div class="empty-state">
-                <mat-icon>pets</mat-icon>
-                <p>No client data available yet</p>
+              <div class="empty-clients">
+                <mat-icon>person_off</mat-icon>
+                <p>No client data available. Client names are extracted from event titles.</p>
               </div>
             } @else {
-              <div class="clients-list">
+              <div class="clients-grid">
                 @for (client of topClients(); track client.name; let i = $index) {
-                  <div class="client-item">
-                    <span class="client-rank">{{ i + 1 }}</span>
+                  <div class="client-card" [class.top-3]="i < 3">
+                    <div class="client-rank" [class]="'rank-' + (i + 1)">
+                      @if (i < 3) {
+                        <mat-icon>{{ i === 0 ? 'emoji_events' : 'star' }}</mat-icon>
+                      } @else {
+                        {{ i + 1 }}
+                      }
+                    </div>
                     <div class="client-info">
                       <span class="client-name">{{ client.name }}</span>
                       <span class="client-stats">
-                        {{ client.visitCount }} visits · {{ formatMinutes(client.totalMinutes) }}
+                        <span class="stat">
+                          <mat-icon>event</mat-icon>
+                          {{ client.visitCount }} visits
+                        </span>
+                        <span class="stat">
+                          <mat-icon>schedule</mat-icon>
+                          {{ formatMinutes(client.totalMinutes) }}
+                        </span>
                       </span>
                     </div>
-                    <div class="client-bar-wrapper">
+                    <div class="client-progress">
                       <div
-                        class="client-bar"
+                        class="progress-bar"
                         [style.width.%]="getClientBarWidth(client.visitCount)"
                       ></div>
                     </div>
@@ -343,66 +397,59 @@ interface DayOfWeekStats {
       flex-wrap: wrap;
     }
 
-    .connection-prompt {
-      text-align: center;
-      padding: 48px;
-    }
-
-    .connection-prompt mat-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: var(--outline);
-    }
-
-    .connection-prompt h2 {
-      margin: 16px 0 8px;
-    }
-
-    .connection-prompt p {
-      margin-bottom: 24px;
-      color: var(--on-surface-variant);
-    }
-
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 64px;
-      color: var(--on-surface-variant);
-    }
-
-    .loading-container p {
-      margin-top: 16px;
-    }
-
     /* Summary Cards */
     .summary-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
+    }
+
+    .summary-card {
+      border-radius: 16px;
+      border: 1px solid var(--outline-variant);
+      transition: all var(--transition-normal) ease;
+    }
+
+    .summary-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
     }
 
     .summary-card mat-card-content {
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 20px;
+      padding: 24px;
     }
 
     .summary-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: var(--primary-container);
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
+    .summary-icon.appointments {
+      background: linear-gradient(135deg, #818CF8, #6366F1);
+    }
+    .summary-icon.hours {
+      background: linear-gradient(135deg, #34D399, #10B981);
+    }
+    .summary-icon.clients {
+      background: linear-gradient(135deg, #F472B6, #EC4899);
+    }
+    .summary-icon.average {
+      background: linear-gradient(135deg, #FBBF24, #F59E0B);
+    }
+
     .summary-icon mat-icon {
-      color: var(--on-primary-container);
+      color: white;
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
     }
 
     .summary-info {
@@ -411,18 +458,74 @@ interface DayOfWeekStats {
     }
 
     .summary-value {
-      font-size: 24px;
-      font-weight: 600;
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
     }
 
     .summary-label {
       font-size: 14px;
       color: var(--on-surface-variant);
+      margin-top: 4px;
+    }
+
+    /* Skeleton Loading */
+    .summary-card.skeleton mat-card-content {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .skeleton-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: var(--surface-container-high);
+    }
+
+    .skeleton-text {
+      background: var(--surface-container-high);
+      border-radius: 4px;
+    }
+
+    .skeleton-text.large {
+      width: 80px;
+      height: 32px;
+    }
+
+    .skeleton-text.medium {
+      width: 120px;
+      height: 20px;
+    }
+
+    .skeleton-text.small {
+      width: 100px;
+      height: 14px;
+      margin-top: 4px;
+    }
+
+    .skeleton-chart {
+      height: 200px;
+      background: var(--surface-container-high);
+      border-radius: 8px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     /* Chart Cards */
     .chart-card {
       margin-bottom: 24px;
+      border-radius: 16px;
+      border: 1px solid var(--outline-variant);
+    }
+
+    .chart-card mat-card-header {
+      padding: 20px 20px 0;
+    }
+
+    .chart-card mat-card-content {
+      padding: 20px;
     }
 
     .charts-row {
@@ -448,15 +551,28 @@ interface DayOfWeekStats {
       align-items: center;
       height: 100%;
       min-width: 20px;
+      cursor: pointer;
     }
 
     .bar {
       width: 100%;
       max-width: 40px;
-      border-radius: 4px 4px 0 0;
-      transition: height 0.3s ease;
+      border-radius: 6px 6px 0 0;
+      transition: all var(--transition-normal) ease;
       margin-top: auto;
     }
+
+    .bar:hover {
+      opacity: 0.8;
+      transform: scaleY(1.05);
+      transform-origin: bottom;
+    }
+
+    .bar.workload-none { background: var(--surface-container-high); }
+    .bar.workload-comfortable { background: var(--workload-comfortable); }
+    .bar.workload-busy { background: var(--workload-busy); }
+    .bar.workload-high { background: var(--workload-high); }
+    .bar.workload-burnout { background: var(--workload-burnout); }
 
     .bar-label {
       font-size: 10px;
@@ -470,6 +586,7 @@ interface DayOfWeekStats {
       justify-content: center;
       gap: 24px;
       margin-top: 16px;
+      flex-wrap: wrap;
     }
 
     .legend-item {
@@ -483,10 +600,15 @@ interface DayOfWeekStats {
     .legend-color {
       width: 12px;
       height: 12px;
-      border-radius: 2px;
+      border-radius: 3px;
     }
 
-    /* Donut Chart */
+    .legend-color.workload-comfortable { background: var(--workload-comfortable); }
+    .legend-color.workload-busy { background: var(--workload-busy); }
+    .legend-color.workload-high { background: var(--workload-high); }
+    .legend-color.workload-burnout { background: var(--workload-burnout); }
+
+    /* Donut Chart - SVG Version */
     .donut-chart-container {
       display: flex;
       align-items: center;
@@ -496,14 +618,19 @@ interface DayOfWeekStats {
 
     .donut-chart {
       position: relative;
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: conic-gradient(
-        from 0deg,
-        var(--surface-container) 0%,
-        var(--surface-container) 100%
-      );
+      width: 180px;
+      height: 180px;
+      flex-shrink: 0;
+    }
+
+    .donut-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .donut-segment-circle {
+      transition: stroke-dasharray var(--transition-normal) ease;
     }
 
     .donut-center {
@@ -519,11 +646,12 @@ interface DayOfWeekStats {
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
     }
 
     .donut-total {
-      font-size: 28px;
-      font-weight: 600;
+      font-size: 32px;
+      font-weight: 700;
     }
 
     .donut-label {
@@ -538,8 +666,8 @@ interface DayOfWeekStats {
     .service-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 0;
+      gap: 10px;
+      padding: 10px 0;
       border-bottom: 1px solid var(--outline-variant);
     }
 
@@ -548,9 +676,9 @@ interface DayOfWeekStats {
     }
 
     .service-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
     }
 
     .service-name {
@@ -558,15 +686,24 @@ interface DayOfWeekStats {
       font-size: 14px;
     }
 
+    .service-percentage {
+      font-size: 12px;
+      color: var(--on-surface-variant);
+      min-width: 35px;
+      text-align: right;
+    }
+
     .service-count {
-      font-weight: 500;
+      font-weight: 600;
+      min-width: 24px;
+      text-align: right;
     }
 
     /* Day of Week Chart */
     .day-chart {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       padding: 16px 0;
     }
 
@@ -584,101 +721,157 @@ interface DayOfWeekStats {
 
     .day-bar-wrapper {
       flex: 1;
-      height: 24px;
+      height: 28px;
       background: var(--surface-container);
-      border-radius: 4px;
+      border-radius: 6px;
       overflow: hidden;
     }
 
     .day-bar {
       height: 100%;
-      background: var(--primary);
-      border-radius: 4px;
-      transition: width 0.3s ease;
+      background: linear-gradient(90deg, var(--primary), var(--primary-container));
+      border-radius: 6px;
+      transition: width var(--transition-normal) ease;
+    }
+
+    .day-bar.highlight {
+      background: linear-gradient(90deg, #6366F1, #8B5CF6);
     }
 
     .day-hours {
       width: 50px;
       text-align: right;
       font-size: 14px;
-      color: var(--on-surface-variant);
+      font-weight: 500;
     }
 
-    /* Clients List */
-    .clients-list {
+    /* Clients Grid */
+    .empty-clients {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      padding: 48px;
+      color: var(--outline);
+      text-align: center;
+    }
+
+    .empty-clients mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+
+    .clients-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
       padding: 16px 0;
     }
 
-    .client-item {
+    .client-card {
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 12px;
+      padding: 16px;
       background: var(--surface-container-low);
-      border-radius: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--outline-variant);
+      transition: all var(--transition-fast) ease;
+    }
+
+    .client-card:hover {
+      background: var(--surface-container);
+      border-color: var(--primary);
+    }
+
+    .client-card.top-3 {
+      background: var(--primary-container);
+      border-color: var(--primary);
     }
 
     .client-rank {
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: var(--primary-container);
-      color: var(--on-primary-container);
+      background: var(--surface-container);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .client-rank.rank-1 {
+      background: linear-gradient(135deg, #FCD34D, #F59E0B);
+      color: white;
+    }
+
+    .client-rank.rank-2 {
+      background: linear-gradient(135deg, #D1D5DB, #9CA3AF);
+      color: white;
+    }
+
+    .client-rank.rank-3 {
+      background: linear-gradient(135deg, #FBBF24, #D97706);
+      color: white;
+    }
+
+    .client-rank mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
 
     .client-info {
       flex: 1;
-      display: flex;
-      flex-direction: column;
+      min-width: 0;
     }
 
     .client-name {
-      font-weight: 500;
+      font-weight: 600;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .client-stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .client-stats .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 12px;
       color: var(--on-surface-variant);
     }
 
-    .client-bar-wrapper {
-      width: 100px;
-      height: 8px;
+    .client-stats mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .client-progress {
+      width: 60px;
+      height: 6px;
       background: var(--surface-container);
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
     }
 
-    .client-bar {
+    .client-progress .progress-bar {
       height: 100%;
       background: var(--primary);
-      border-radius: 4px;
+      border-radius: 3px;
     }
 
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px;
-      color: var(--outline);
-    }
-
-    .empty-state mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
-    }
-
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
       .charts-row {
         grid-template-columns: 1fr;
       }
@@ -687,8 +880,16 @@ interface DayOfWeekStats {
         flex-direction: column;
       }
 
+      .donut-chart {
+        margin: 0 auto;
+      }
+
       .bar-label {
         display: none;
+      }
+
+      .clients-grid {
+        grid-template-columns: 1fr;
       }
     }
   `],
@@ -698,12 +899,19 @@ export class AnalyticsComponent implements OnInit {
   private googleCalendarService = inject(GoogleCalendarService);
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
+  private snackBar = inject(MatSnackBar);
 
   timeRange: 'week' | 'month' | '3months' = 'month';
   isLoading = signal(false);
   events = signal<CalendarEvent[]>([]);
 
   isConnected = computed(() => this.googleCalendarService.isSignedIn());
+
+  // Max day minutes for highlighting
+  maxDayMinutes = computed(() => {
+    const stats = this.dayOfWeekStats();
+    return Math.max(...stats.map(d => d.averageMinutes));
+  });
 
   // Summary statistics
   summaryStats = computed(() => {

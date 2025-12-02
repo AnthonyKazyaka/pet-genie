@@ -1,14 +1,18 @@
-import { Component, inject, computed, OnInit, signal } from '@angular/core';
+import { Component, inject, computed, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataService, WorkloadService, GoogleCalendarService, EventProcessorService } from '../../core/services';
 import { CalendarEvent, DateRange } from '../../models';
+import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
 import { firstValueFrom } from 'rxjs';
-import { format, startOfDay, endOfDay, addDays } from 'date-fns';
+import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date-fns';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,141 +24,303 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
+    MatStepperModule,
+    MatTooltipModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   template: `
     <div class="dashboard-container">
       <header class="dashboard-header">
-        <h1>Dashboard</h1>
-        <p class="subtitle">Welcome to Pet Genie - Your pet sitting business assistant</p>
+        <div class="header-content">
+          <h1>Dashboard</h1>
+          <p class="subtitle">Welcome to Pet Genie - Your pet sitting business assistant</p>
+        </div>
+        <div class="header-actions" *ngIf="isConnected()">
+          <button mat-stroked-button routerLink="/calendar">
+            <mat-icon>add</mat-icon>
+            View Calendar
+          </button>
+        </div>
       </header>
 
       <!-- Quick Stats -->
-      <section class="stats-grid">
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-icon">
-              <mat-icon>event</mat-icon>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ todayStats().eventCount }}</span>
-              <span class="stat-label">Today's Appointments</span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+      <section class="stats-grid" aria-label="Quick statistics">
+        @if (isLoading()) {
+          <app-skeleton-loader type="stat" [count]="4"></app-skeleton-loader>
+        } @else {
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('today')"
+            (keydown.enter)="navigateToCalendar('today')"
+            tabindex="0"
+            role="button"
+            aria-label="Today's appointments: {{ todayStats().eventCount }}. Click to view in calendar."
+          >
+            <mat-card-content>
+              <div class="stat-icon">
+                <mat-icon>event</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ todayStats().eventCount }}</span>
+                <span class="stat-label">Today's Appointments</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
 
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-icon">
-              <mat-icon>schedule</mat-icon>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ todayStats().hoursFormatted }}</span>
-              <span class="stat-label">Work Hours Today</span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('today')"
+            (keydown.enter)="navigateToCalendar('today')"
+            tabindex="0"
+            role="button"
+            aria-label="Work hours today: {{ todayStats().hoursFormatted }}. Click to view in calendar."
+          >
+            <mat-card-content>
+              <div class="stat-icon">
+                <mat-icon>schedule</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ todayStats().hoursFormatted }}</span>
+                <span class="stat-label">Work Hours Today</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
 
-        <mat-card class="stat-card" [style.--accent-color]="weekStats().levelColor">
-          <mat-card-content>
-            <div class="stat-icon" [style.background]="weekStats().levelColor">
-              <mat-icon>trending_up</mat-icon>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ weekStats().hoursFormatted }}</span>
-              <span class="stat-label">This Week ({{ weekStats().levelLabel }})</span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+          <mat-card 
+            class="stat-card clickable" 
+            [style.--accent-color]="weekStats().levelColor"
+            (click)="navigateToAnalytics()"
+            (keydown.enter)="navigateToAnalytics()"
+            tabindex="0"
+            role="button"
+            aria-label="This week: {{ weekStats().hoursFormatted }}, status {{ weekStats().levelLabel }}. Click to view analytics."
+          >
+            <mat-card-content>
+              <div class="stat-icon" [style.background]="weekStats().levelColor">
+                <mat-icon>trending_up</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ weekStats().hoursFormatted }}</span>
+                <span class="stat-label">This Week ({{ weekStats().levelLabel }})</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
 
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-icon">
-              <mat-icon>pets</mat-icon>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ weekStats().eventCount }}</span>
-              <span class="stat-label">Visits This Week</span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('week')"
+            (keydown.enter)="navigateToCalendar('week')"
+            tabindex="0"
+            role="button"
+            aria-label="Visits this week: {{ weekStats().eventCount }}. Click to view in calendar."
+          >
+            <mat-card-content>
+              <div class="stat-icon visits-icon">
+                <mat-icon>pets</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ weekStats().eventCount }}</span>
+                <span class="stat-label">Visits This Week</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+        }
       </section>
 
-      <!-- Getting Started -->
-      <section class="getting-started">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>Getting Started</mat-card-title>
-            <mat-card-subtitle>Connect your Google Calendar to begin</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="setup-steps">
-              <div class="setup-step">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                  <h3>Connect Google Calendar</h3>
-                  <p>Link your Google Calendar to import your pet sitting appointments</p>
+      <!-- Getting Started / Setup Progress -->
+      @if (!isConnected() || !hasCompletedSetup()) {
+        <section class="getting-started" aria-label="Setup wizard">
+          <mat-card>
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="wizard-icon">auto_fix_high</mat-icon>
+              <mat-card-title>Getting Started</mat-card-title>
+              <mat-card-subtitle>
+                Complete these steps to get the most out of Pet Genie
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <!-- Progress Bar -->
+              <div class="setup-progress">
+                <div class="progress-info">
+                  <span>Setup Progress</span>
+                  <span class="progress-percentage">{{ setupProgress() }}%</span>
                 </div>
-                <button mat-raised-button color="primary" routerLink="/settings">
-                  <mat-icon>link</mat-icon>
-                  Connect
-                </button>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="setupProgress()"
+                  aria-label="Setup progress"
+                ></mat-progress-bar>
               </div>
-              <div class="setup-step">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                  <h3>Configure Templates</h3>
-                  <p>Set up appointment templates for quick scheduling</p>
-                </div>
-                <button mat-stroked-button routerLink="/templates">
-                  <mat-icon>description</mat-icon>
-                  Configure
-                </button>
-              </div>
-              <div class="setup-step">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                  <h3>Set Workload Thresholds</h3>
-                  <p>Customize your comfort levels for workload monitoring</p>
-                </div>
-                <button mat-stroked-button routerLink="/settings">
-                  <mat-icon>tune</mat-icon>
-                  Customize
-                </button>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </section>
 
-      <!-- Upcoming Appointments Placeholder -->
-      <section class="upcoming-section">
+              <div class="setup-steps">
+                <div class="setup-step" [class.completed]="isConnected()">
+                  <div class="step-indicator">
+                    @if (isConnected()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">1</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Connect Google Calendar</h3>
+                    <p>Link your Google Calendar to import your pet sitting appointments</p>
+                  </div>
+                  @if (!isConnected()) {
+                    <button mat-raised-button color="primary" routerLink="/settings">
+                      <mat-icon>link</mat-icon>
+                      Connect
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasCalendarsSelected()">
+                  <div class="step-indicator">
+                    @if (hasCalendarsSelected()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">2</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Select Calendars</h3>
+                    <p>Choose which calendars contain your pet sitting appointments</p>
+                  </div>
+                  @if (!hasCalendarsSelected()) {
+                    <button 
+                      mat-stroked-button 
+                      routerLink="/settings"
+                      [disabled]="!isConnected()"
+                    >
+                      <mat-icon>event_note</mat-icon>
+                      Select
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasTemplates()">
+                  <div class="step-indicator">
+                    @if (hasTemplates()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">3</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Configure Templates</h3>
+                    <p>Set up appointment templates for quick scheduling</p>
+                  </div>
+                  @if (!hasTemplates()) {
+                    <button mat-stroked-button routerLink="/templates">
+                      <mat-icon>description</mat-icon>
+                      Configure
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasCustomThresholds()">
+                  <div class="step-indicator">
+                    @if (hasCustomThresholds()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">4</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Set Workload Thresholds</h3>
+                    <p>Customize your comfort levels for workload monitoring</p>
+                  </div>
+                  @if (!hasCustomThresholds()) {
+                    <button mat-stroked-button routerLink="/settings">
+                      <mat-icon>tune</mat-icon>
+                      Customize
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </section>
+      }
+
+      <!-- Upcoming Appointments -->
+      <section class="upcoming-section" aria-label="Upcoming appointments">
         <mat-card>
           <mat-card-header>
             <mat-card-title>Upcoming Appointments</mat-card-title>
             <mat-card-subtitle>Your schedule for the next 7 days</mat-card-subtitle>
+            <button 
+              mat-stroked-button 
+              class="view-all-btn" 
+              routerLink="/calendar"
+              *ngIf="upcomingEvents().length > 0"
+            >
+              View All
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
           </mat-card-header>
           <mat-card-content>
             @if (isLoading()) {
-              <div class="loading-container">
-                <mat-spinner diameter="40"></mat-spinner>
-              </div>
+              <app-skeleton-loader type="list" [count]="5"></app-skeleton-loader>
             } @else if (upcomingEvents().length === 0) {
-              <div class="empty-state">
-                <mat-icon>event_available</mat-icon>
-                <p>No upcoming appointments</p>
-                <span>Connect your calendar to see your schedule</span>
-              </div>
+              <app-empty-state
+                icon="event_available"
+                title="No upcoming appointments"
+                [description]="isConnected() ? 'Your schedule is clear for the next 7 days.' : 'Connect your calendar to see your schedule.'"
+                [actionLabel]="isConnected() ? 'View Calendar' : 'Connect Calendar'"
+                [actionLink]="isConnected() ? '/calendar' : '/settings'"
+                [actionIcon]="isConnected() ? 'calendar_month' : 'link'"
+                [compact]="true"
+              ></app-empty-state>
             } @else {
               <div class="events-list">
-                @for (event of upcomingEvents(); track event.id) {
-                  <div class="event-item">
-                    <div class="event-time">
-                      {{ formatEventTime(event.start) }}
+                @for (group of groupedEvents(); track group.label) {
+                  <div class="event-group">
+                    <div class="group-header">
+                      <span class="group-label">{{ group.label }}</span>
+                      <span class="group-count">{{ group.events.length }} {{ group.events.length === 1 ? 'event' : 'events' }}</span>
                     </div>
-                    <div class="event-details">
-                      <span class="event-title">{{ event.title }}</span>
-                      <span class="event-client" *ngIf="event.clientName">{{ event.clientName }}</span>
-                    </div>
+                    @for (event of group.events; track event.id) {
+                      <div 
+                        class="event-item" 
+                        [class.work-event]="event.isWorkEvent"
+                        tabindex="0"
+                        role="article"
+                        [attr.aria-label]="getEventAriaLabel(event)"
+                      >
+                        <div class="event-time-block">
+                          <span class="event-time">{{ format(event.start, 'h:mm a') }}</span>
+                          <span class="event-duration">{{ getEventDuration(event) }}</span>
+                        </div>
+                        <div class="event-details">
+                          <span class="event-title">{{ event.title }}</span>
+                          <span class="event-client" *ngIf="event.clientName">
+                            <mat-icon>pets</mat-icon>
+                            {{ event.clientName }}
+                          </span>
+                          <span class="event-location" *ngIf="event.location">
+                            <mat-icon>location_on</mat-icon>
+                            {{ event.location }}
+                          </span>
+                        </div>
+                        <mat-icon class="event-type-icon" [matTooltip]="event.isWorkEvent ? 'Pet sitting appointment' : 'Personal event'">
+                          {{ event.isWorkEvent ? 'pets' : 'event' }}
+                        </mat-icon>
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -162,6 +328,31 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
           </mat-card-content>
         </mat-card>
       </section>
+
+      <!-- Quick Actions -->
+      @if (isConnected()) {
+        <section class="quick-actions" aria-label="Quick actions">
+          <h2>Quick Actions</h2>
+          <div class="actions-grid">
+            <button mat-stroked-button class="action-card" routerLink="/calendar">
+              <mat-icon>calendar_month</mat-icon>
+              <span>View Calendar</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/templates">
+              <mat-icon>add_circle</mat-icon>
+              <span>New Template</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/analytics">
+              <mat-icon>insights</mat-icon>
+              <span>View Analytics</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/settings">
+              <mat-icon>settings</mat-icon>
+              <span>Settings</span>
+            </button>
+          </div>
+        </section>
+      }
     </div>
   `,
   styles: [`
@@ -171,10 +362,15 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
     }
 
     .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
-    .dashboard-header h1 {
+    .header-content h1 {
       margin: 0;
       font-size: 28px;
       font-weight: 600;
@@ -192,6 +388,23 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       margin-bottom: 24px;
     }
 
+    .stat-card {
+      transition: transform var(--transition-fast) ease, box-shadow var(--transition-fast) ease;
+    }
+
+    .stat-card.clickable {
+      cursor: pointer;
+    }
+
+    .stat-card.clickable:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md) !important;
+    }
+
+    .stat-card.clickable:focus-visible {
+      box-shadow: var(--focus-ring) !important;
+    }
+
     .stat-card mat-card-content {
       display: flex;
       align-items: center;
@@ -207,6 +420,7 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .stat-icon mat-icon {
@@ -216,9 +430,18 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       height: 24px;
     }
 
+    .visits-icon {
+      background: var(--secondary-container);
+    }
+
+    .visits-icon mat-icon {
+      color: var(--on-secondary-container);
+    }
+
     .stat-info {
       display: flex;
       flex-direction: column;
+      flex: 1;
     }
 
     .stat-value {
@@ -232,14 +455,46 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       color: var(--on-surface-variant);
     }
 
+    .stat-arrow {
+      color: var(--outline);
+      transition: transform var(--transition-fast) ease;
+    }
+
+    .stat-card.clickable:hover .stat-arrow {
+      transform: translateX(4px);
+      color: var(--primary);
+    }
+
+    /* Getting Started Section */
     .getting-started {
       margin-bottom: 24px;
+    }
+
+    .wizard-icon {
+      background: var(--primary-container) !important;
+      color: var(--on-primary-container) !important;
+    }
+
+    .setup-progress {
+      margin-bottom: 24px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .progress-percentage {
+      font-weight: 600;
+      color: var(--primary);
     }
 
     .setup-steps {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     .setup-step {
@@ -249,6 +504,20 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       padding: 16px;
       border-radius: 12px;
       background: var(--surface-container-low);
+      transition: background var(--transition-fast) ease;
+    }
+
+    .setup-step.completed {
+      background: var(--tertiary-container);
+    }
+
+    .step-indicator {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
     .step-number {
@@ -261,7 +530,13 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       align-items: center;
       justify-content: center;
       font-weight: 600;
-      flex-shrink: 0;
+    }
+
+    .check-icon {
+      color: var(--tertiary);
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
     }
 
     .step-content {
@@ -280,49 +555,57 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       color: var(--on-surface-variant);
     }
 
-    .upcoming-section mat-card-content {
-      min-height: 200px;
+    .step-done {
+      color: var(--tertiary);
     }
 
-    .loading-container {
+    /* Upcoming Section */
+    .upcoming-section {
+      margin-bottom: 24px;
+    }
+
+    .upcoming-section mat-card-header {
       display: flex;
-      justify-content: center;
       align-items: center;
-      height: 200px;
     }
 
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 200px;
-      color: var(--on-surface-variant);
+    .view-all-btn {
+      margin-left: auto;
     }
 
-    .empty-state mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-
-    .empty-state p {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .empty-state span {
-      font-size: 14px;
-      opacity: 0.7;
+    .view-all-btn mat-icon {
+      margin-left: 4px;
     }
 
     .events-list {
       display: flex;
       flex-direction: column;
+      gap: 16px;
+    }
+
+    .event-group {
+      display: flex;
+      flex-direction: column;
       gap: 8px;
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--outline-variant);
+    }
+
+    .group-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--on-surface);
+    }
+
+    .group-count {
+      font-size: 12px;
+      color: var(--on-surface-variant);
     }
 
     .event-item {
@@ -331,18 +614,45 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       padding: 12px;
       border-radius: 8px;
       background: var(--surface-container-low);
+      transition: background var(--transition-fast) ease;
+      align-items: center;
+    }
+
+    .event-item:hover {
+      background: var(--surface-container);
+    }
+
+    .event-item:focus-visible {
+      box-shadow: var(--focus-ring);
+    }
+
+    .event-item.work-event {
+      border-left: 3px solid var(--primary);
+    }
+
+    .event-time-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 70px;
     }
 
     .event-time {
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       color: var(--primary);
-      white-space: nowrap;
+    }
+
+    .event-duration {
+      font-size: 11px;
+      color: var(--on-surface-variant);
     }
 
     .event-details {
       display: flex;
       flex-direction: column;
+      flex: 1;
+      gap: 4px;
     }
 
     .event-title {
@@ -350,23 +660,136 @@ import { format, startOfDay, endOfDay, addDays } from 'date-fns';
       font-weight: 500;
     }
 
-    .event-client {
+    .event-client,
+    .event-location {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 12px;
       color: var(--on-surface-variant);
     }
+
+    .event-client mat-icon,
+    .event-location mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .event-type-icon {
+      color: var(--outline);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      margin-bottom: 24px;
+    }
+
+    .quick-actions h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .action-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 20px 16px;
+      height: auto;
+      border-radius: 12px;
+    }
+
+    .action-card mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: var(--primary);
+    }
+
+    .action-card span {
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card mat-card-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px;
+      }
+
+      .stat-arrow {
+        display: none;
+      }
+
+      .event-item {
+        flex-wrap: wrap;
+      }
+
+      .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
   `],
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private dataService = inject(DataService);
   private workloadService = inject(WorkloadService);
   private googleCalendarService = inject(GoogleCalendarService);
   private eventProcessor = inject(EventProcessorService);
+  private router = inject(Router);
 
   isLoading = signal(false);
   events = signal<CalendarEvent[]>([]);
+  private refreshListener: (() => void) | null = null;
 
   // Connection status
   isConnected = computed(() => this.googleCalendarService.isSignedIn());
+
+  // Setup progress tracking
+  hasCalendarsSelected = computed(() => {
+    const settings = this.dataService.settings();
+    return settings.selectedCalendars.length > 0;
+  });
+
+  hasTemplates = computed(() => {
+    // For now, we assume templates exist if connected
+    return true;
+  });
+
+  hasCustomThresholds = computed(() => {
+    const settings = this.dataService.settings();
+    // Check if thresholds differ from defaults
+    return settings.thresholds.daily.comfortable !== 4 || 
+           settings.thresholds.weekly.comfortable !== 20;
+  });
+
+  hasCompletedSetup = computed(() => {
+    return this.isConnected() && 
+           this.hasCalendarsSelected() && 
+           this.hasTemplates() && 
+           this.hasCustomThresholds();
+  });
+
+  setupProgress = computed(() => {
+    let progress = 0;
+    if (this.isConnected()) progress += 25;
+    if (this.hasCalendarsSelected()) progress += 25;
+    if (this.hasTemplates()) progress += 25;
+    if (this.hasCustomThresholds()) progress += 25;
+    return progress;
+  });
 
   todayStats = computed(() => {
     const todayEvents = this.events().filter(e => {
@@ -405,12 +828,54 @@ export class DashboardComponent implements OnInit {
     return allEvents
       .filter((e) => e.isWorkEvent && e.start >= now && e.start <= weekFromNow)
       .sort((a, b) => a.start.getTime() - b.start.getTime())
-      .slice(0, 10);
+      .slice(0, 15);
   });
+
+  // Group events by day for display
+  groupedEvents = computed(() => {
+    const events = this.upcomingEvents();
+    const groups: { label: string; date: Date; events: CalendarEvent[] }[] = [];
+
+    events.forEach(event => {
+      const eventDate = startOfDay(event.start);
+      let label = format(eventDate, 'EEEE, MMMM d');
+      
+      if (isToday(eventDate)) {
+        label = 'Today';
+      } else if (isTomorrow(eventDate)) {
+        label = 'Tomorrow';
+      }
+
+      const existingGroup = groups.find(g => 
+        startOfDay(g.date).getTime() === eventDate.getTime()
+      );
+
+      if (existingGroup) {
+        existingGroup.events.push(event);
+      } else {
+        groups.push({ label, date: eventDate, events: [event] });
+      }
+    });
+
+    return groups;
+  });
+
+  // date-fns format exposed for template
+  format = format;
 
   async ngOnInit(): Promise<void> {
     if (this.googleCalendarService.isSignedIn()) {
       await this.loadEvents();
+    }
+
+    // Listen for refresh events from app shell
+    this.refreshListener = () => this.loadEvents();
+    window.addEventListener('pet-genie:refresh', this.refreshListener);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshListener) {
+      window.removeEventListener('pet-genie:refresh', this.refreshListener);
     }
   }
 
@@ -437,7 +902,32 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  formatEventTime(date: Date): string {
-    return format(date, 'EEE, MMM d, h:mm a');
+  navigateToCalendar(view: 'today' | 'week'): void {
+    this.router.navigate(['/calendar']);
+  }
+
+  navigateToAnalytics(): void {
+    this.router.navigate(['/analytics']);
+  }
+
+  getEventDuration(event: CalendarEvent): string {
+    const durationMs = event.end.getTime() - event.start.getTime();
+    const minutes = Math.round(durationMs / (1000 * 60));
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
+
+  getEventAriaLabel(event: CalendarEvent): string {
+    const time = format(event.start, 'h:mm a');
+    const duration = this.getEventDuration(event);
+    let label = `${event.title} at ${time}, ${duration}`;
+    if (event.clientName) {
+      label += `, client: ${event.clientName}`;
+    }
+    return label;
   }
 }

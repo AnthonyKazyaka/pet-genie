@@ -51,6 +51,8 @@ export class GoogleCalendarService {
   private tokenClient: any = null;
   private gapiInitialized = false;
   private gisInitialized = false;
+  private signInResolver: ((value: void) => void) | null = null;
+  private signInRejecter: ((reason: Error) => void) | null = null;
 
   // Public readonly accessors
   readonly authState = this.authStateSignal.asReadonly();
@@ -223,7 +225,12 @@ export class GoogleCalendarService {
       callback: (response: any) => {
         this.ngZone.run(() => {
           if (response.error) {
-            console.error('OAuth error:', response.error);
+            console.error('OAuth error:', response.error, response.error_description);
+            if (this.signInRejecter) {
+              this.signInRejecter(new Error(response.error_description || response.error));
+              this.signInRejecter = null;
+              this.signInResolver = null;
+            }
             return;
           }
 
@@ -242,6 +249,23 @@ export class GoogleCalendarService {
 
           // Get user email
           this.fetchUserEmail();
+
+          // Resolve the signIn promise
+          if (this.signInResolver) {
+            this.signInResolver();
+            this.signInResolver = null;
+            this.signInRejecter = null;
+          }
+        });
+      },
+      error_callback: (error: any) => {
+        this.ngZone.run(() => {
+          console.error('OAuth error callback:', error);
+          if (this.signInRejecter) {
+            this.signInRejecter(new Error(error.message || 'OAuth error'));
+            this.signInRejecter = null;
+            this.signInResolver = null;
+          }
         });
       },
     });
@@ -272,6 +296,7 @@ export class GoogleCalendarService {
 
   /**
    * Trigger OAuth sign-in
+   * Returns a Promise that resolves when sign-in completes or rejects on error
    */
   async signIn(): Promise<void> {
     if (!this.tokenClient) {
@@ -285,8 +310,23 @@ export class GoogleCalendarService {
       return;
     }
 
-    // Request new token
-    this.tokenClient.requestAccessToken({ prompt: 'consent' });
+    // Return a promise that resolves when the OAuth callback fires
+    return new Promise<void>((resolve, reject) => {
+      this.signInResolver = resolve;
+      this.signInRejecter = reject;
+
+      // Request new token - use empty prompt to allow silent sign-in if possible
+      // 'consent' forces the consent screen every time
+      // 'select_account' allows user to choose account
+      // '' (empty) allows silent auth if user previously consented
+      try {
+        this.tokenClient.requestAccessToken({ prompt: '' });
+      } catch (error) {
+        this.signInResolver = null;
+        this.signInRejecter = null;
+        reject(error);
+      }
+    });
   }
 
   /**

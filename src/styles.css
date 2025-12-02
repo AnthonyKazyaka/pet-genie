@@ -32,6 +32,7 @@
   --surface-container: #F5F5F5;
   --surface-container-low: #FAFAFA;
   --surface-container-high: #EEEEEE;
+  --surface-container-lowest: #FFFFFF;
   --on-surface: #1F2937;
   --on-surface-variant: #6B7280;
 
@@ -49,6 +50,57 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Animation durations */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.4);
+}
+
+/* Dark mode theme */
+[data-theme="dark"] {
+  /* Primary colors - Indigo (adjusted for dark) */
+  --primary: #818CF8;
+  --primary-container: #3730A3;
+  --on-primary: #1E1B4B;
+  --on-primary-container: #E0E7FF;
+
+  /* Secondary colors - Teal */
+  --secondary: #5EEAD4;
+  --secondary-container: #115E59;
+  --on-secondary: #042F2E;
+  --on-secondary-container: #CCFBF1;
+
+  /* Tertiary colors - Green */
+  --tertiary: #34D399;
+  --tertiary-container: #065F46;
+  --on-tertiary: #022C22;
+  --on-tertiary-container: #D1FAE5;
+
+  /* Error colors */
+  --error: #F87171;
+  --error-container: #7F1D1D;
+  --on-error: #450A0A;
+  --on-error-container: #FEE2E2;
+
+  /* Surface colors */
+  --surface: #111827;
+  --surface-container: #1F2937;
+  --surface-container-low: #1a202c;
+  --surface-container-high: #374151;
+  --surface-container-lowest: #0D1117;
+  --on-surface: #F9FAFB;
+  --on-surface-variant: #9CA3AF;
+
+  /* Outline */
+  --outline: #4B5563;
+  --outline-variant: #374151;
+
+  /* Focus ring for dark mode */
+  --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.4);
 }
 
 /* Base styles */
@@ -195,4 +247,111 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--on-surface-variant);
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: 8px 16px;
+  z-index: 10000;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 0 0 8px 0;
+  transition: top var(--transition-fast) ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Focus visible styles for accessibility */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Skeleton loader animation */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-container) 0px,
+    var(--surface-container-high) 40px,
+    var(--surface-container) 80px
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-text:last-child {
+  width: 80%;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: 12px;
+}
+
+/* Dark mode Material overrides */
+[data-theme="dark"] .mat-mdc-card {
+  --mdc-elevated-card-container-color: var(--surface-container);
+  border-color: var(--outline-variant);
+}
+
+[data-theme="dark"] .mat-drawer {
+  background: var(--surface-container);
+}
+
+[data-theme="dark"] .mat-toolbar.mat-primary {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
