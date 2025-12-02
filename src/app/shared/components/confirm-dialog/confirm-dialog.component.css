@@ -51,7 +51,7 @@ mat-dialog-actions {
 }
 
 [data-theme="dark"] .dialog-icon.warn {
-  color: #FCA5A5;
+  color: var(--error);
 }
 
 [data-theme="dark"] .dialog-icon.primary {

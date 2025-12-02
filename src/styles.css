@@ -32,6 +32,7 @@
   --surface-container: #F5F5F5;
   --surface-container-low: #FAFAFA;
   --surface-container-high: #EEEEEE;
+  --surface-container-highest: #E5E5E5;
   --surface-container-lowest: #FFFFFF;
   --on-surface: #1F2937;
   --on-surface-variant: #6B7280;
@@ -91,6 +92,7 @@
   --surface-container: #1F2937;
   --surface-container-low: #1a202c;
   --surface-container-high: #374151;
+  --surface-container-highest: #4B5563;
   --surface-container-lowest: #0D1117;
   --on-surface: #F3F4F6;
   --on-surface-variant: #D1D5DB;
@@ -242,17 +244,17 @@ html, body {
 [data-theme="dark"] .mat-mdc-button.mat-warn,
 [data-theme="dark"] .mat-mdc-outlined-button.mat-warn,
 [data-theme="dark"] .mat-mdc-stroked-button.mat-warn {
-  --mdc-text-button-label-text-color: #FCA5A5;
-  --mdc-outlined-button-label-text-color: #FCA5A5;
-  --mdc-outlined-button-outline-color: #FCA5A5;
+  --mdc-text-button-label-text-color: var(--error);
+  --mdc-outlined-button-label-text-color: var(--error);
+  --mdc-outlined-button-outline-color: var(--error);
 }
 
 [data-theme="dark"] .mat-mdc-raised-button.mat-warn,
 [data-theme="dark"] .mat-mdc-unelevated-button.mat-warn {
-  --mdc-protected-button-container-color: #DC2626;
-  --mdc-protected-button-label-text-color: #FFFFFF;
-  --mdc-filled-button-container-color: #DC2626;
-  --mdc-filled-button-label-text-color: #FFFFFF;
+  --mdc-protected-button-container-color: var(--error);
+  --mdc-protected-button-label-text-color: var(--on-error);
+  --mdc-filled-button-container-color: var(--error);
+  --mdc-filled-button-label-text-color: var(--on-error);
 }
 
 .mat-mdc-icon-button {
@@ -471,8 +473,8 @@ a:visited {
 }
 
 [data-theme="dark"] a:hover {
-  color: #A5B4FC;
-  text-decoration-color: #A5B4FC;
+  color: var(--primary-container);
+  text-decoration-color: var(--primary-container);
 }
 
 [data-theme="dark"] a:visited {
@@ -489,7 +491,7 @@ a:visited {
 
 [data-theme="dark"] .mat-mdc-form-field mat-hint a,
 [data-theme="dark"] .mat-hint a {
-  color: #A5B4FC;
+  color: var(--primary);
 }
 
 /* Skeleton loader animation */

@@ -36,7 +36,7 @@ mat-button-toggle-group {
   border-radius: 8px;
   overflow: hidden;
   background: var(--surface-container-low);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 mat-button-toggle {
@@ -105,20 +105,20 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
 }
 
 .summary-icon.appointments {
-  background: linear-gradient(135deg, #818CF8, #6366F1);
+  background: var(--primary-container);
 }
 .summary-icon.hours {
-  background: linear-gradient(135deg, #34D399, #10B981);
+  background: var(--tertiary-container);
 }
 .summary-icon.clients {
-  background: linear-gradient(135deg, #F472B6, #EC4899);
+  background: var(--secondary-container);
 }
 .summary-icon.average {
-  background: linear-gradient(135deg, #FBBF24, #F59E0B);
+  background: var(--workload-busy);
 }
 
 .summary-icon mat-icon {
-  color: white;
+  color: var(--on-surface);
   font-size: 28px;
   width: 28px;
   height: 28px;
@@ -322,7 +322,7 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .donut-total {
@@ -405,13 +405,13 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
 
 .day-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-container));
+  background: var(--primary);
   border-radius: 6px;
   transition: width var(--transition-normal) ease;
 }
 
 .day-bar.highlight {
-  background: linear-gradient(90deg, #6366F1, #8B5CF6);
+  background: var(--secondary);
 }
 
 .day-hours {
@@ -480,18 +480,18 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
 }
 
 .client-rank.rank-1 {
-  background: linear-gradient(135deg, #FCD34D, #F59E0B);
-  color: white;
+  background: var(--workload-busy);
+  color: var(--on-surface);
 }
 
 .client-rank.rank-2 {
-  background: linear-gradient(135deg, #D1D5DB, #9CA3AF);
-  color: white;
+  background: var(--outline);
+  color: var(--on-surface);
 }
 
 .client-rank.rank-3 {
-  background: linear-gradient(135deg, #FBBF24, #D97706);
-  color: white;
+  background: var(--workload-high);
+  color: var(--on-surface);
 }
 
 .client-rank mat-icon {

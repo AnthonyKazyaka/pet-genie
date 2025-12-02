@@ -171,11 +171,11 @@ mat-hint a:hover {
 }
 
 [data-theme="dark"] mat-hint a {
-  color: #A5B4FC;
+  color: var(--primary);
 }
 
 [data-theme="dark"] mat-hint a:hover {
-  color: #C7D2FE;
+  color: var(--primary-container);
 }
 
 .external-link {
