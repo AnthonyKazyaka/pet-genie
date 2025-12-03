@@ -7,7 +7,7 @@ import { DataService, GoogleCalendarService } from './core/services';
   selector: 'app-root',
   standalone: true,
   template: '<app-shell></app-shell>',
-  styles: [],
+  styleUrl: './app.component.scss',
   imports: [AppShellComponent],
 })
 export class AppComponent implements OnInit {

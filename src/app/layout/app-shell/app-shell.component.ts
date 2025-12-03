@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, HostListener, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
@@ -40,7 +40,7 @@ interface Breadcrumb {
   ],
   styleUrl: './app-shell.component.scss',
   template: `
-    <mat-sidenav-container class="app-container">
+    <mat-sidenav-container class="app-container" #sidenavContainer>
       <!-- Sidebar (Desktop) -->
       <mat-sidenav
         #sidenav
@@ -200,6 +200,7 @@ interface Breadcrumb {
 })
 export class AppShellComponent {
   @ViewChild('sidenav') sidenav!: MatSidenav;
+  @ViewChild('sidenavContainer', { read: ElementRef }) sidenavContainer?: ElementRef;
   
   private router = inject(Router);
   themeService = inject(ThemeService);
@@ -264,6 +265,19 @@ export class AppShellComponent {
   @HostListener('window:resize')
   onResize(): void {
     this.checkMobile();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.isMobile() || !this.sidenav?.opened) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    const containerEl = this.sidenavContainer?.nativeElement as HTMLElement | undefined;
+    if (containerEl && !containerEl.contains(target)) {
+      this.sidenav.close();
+      this.sidenavOpened.set(false);
+    }
   }
 
   private checkMobile(): void {

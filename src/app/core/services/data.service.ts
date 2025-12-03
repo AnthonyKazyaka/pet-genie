@@ -139,6 +139,20 @@ export class DataService {
     return this.getEventsInRange(start, end);
   }
 
+  /**
+   * Download all events as a JSON file
+   */
+  downloadEventsAsJSON(filename: string = 'events.json'): void {
+    const data = JSON.stringify(this.eventsSignal(), null, 2);
+    const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ==================== Calendars ====================
 
   /**

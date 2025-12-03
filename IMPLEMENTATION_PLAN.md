@@ -126,10 +126,10 @@ interface Template {
 **Description**: Enhanced handling and display of overnight events.
 
 **Files to Create/Modify**:
-- [ ] `src/app/core/services/event-processor.service.ts` - Add overnight detection
-- [ ] `src/app/features/calendar/calendar.component.css` - Overnight event styles
-- [ ] Add `isOvernightEvent()` helper method
-- [ ] Add `calculateOvernightNights()` helper method
+- [x] `src/app/core/services/event-processor.service.ts` - Add overnight detection
+- [ ] `src/app/features/calendar/calendar.component.scss` - Overnight event styles
+- [x] Add `isOvernightEvent()` helper method
+- [x] Add `calculateOvernightNights()` helper method
 
 ---
 
@@ -138,8 +138,8 @@ interface Template {
 **Description**: Support varying navigation periods (day/week/month).
 
 **Files to Modify**:
-- [ ] `src/app/features/calendar/calendar.component.ts` - Enhanced navigation methods
-- [ ] Add `navigateByPeriod(period: 'day' | 'week' | 'month', direction: number)` method
+- [x] `src/app/features/calendar/calendar.component.ts` - Enhanced navigation methods
+- [x] Add `navigateByPeriod(period: 'day' | 'week' | 'month', direction: number)` method
 
 ---
 
@@ -148,7 +148,7 @@ interface Template {
 **Description**: Close sidebar when clicking outside on mobile.
 
 **Files to Modify**:
-- [ ] `src/app/layout/app-shell/app-shell.component.ts` - Add click-outside handler
+- [x] `src/app/layout/app-shell/app-shell.component.ts` - Add click-outside handler
 - [ ] Ensure proper touch target sizes (already addressed in previous work)
 
 ---
@@ -160,7 +160,7 @@ interface Template {
 **Description**: Allow users to download all events as a JSON file.
 
 **Files to Modify**:
-- [ ] `src/app/core/services/data.service.ts` - Add `downloadEventsAsJSON()` method
+- [x] `src/app/core/services/data.service.ts` - Add `downloadEventsAsJSON()` method
 
 ---
 
@@ -169,8 +169,8 @@ interface Template {
 **Description**: Filter to show only work events (pet sitting appointments) vs all calendar events.
 
 **Files to Create/Modify**:
-- [ ] `src/app/core/services/event-processor.service.ts` - Add work event detection
-- [ ] `src/app/models/event.model.ts` - Add `isWorkEvent` property
+- [x] `src/app/core/services/event-processor.service.ts` - Add work event detection
+- [x] `src/app/models/event.model.ts` - Add `isWorkEvent` property
 
 ---
 
@@ -228,8 +228,8 @@ interface Template {
 
 #### Multi-Event Service (New)
 - [x] Event generation from config
-- [ ] Conflict detection
-- [ ] Validation logic
+- [x] Conflict detection
+- [x] Validation logic
 
 ---
 
@@ -251,10 +251,10 @@ interface Template {
 9. ✅ Create MultiEventDialogComponent
 
 ### Sprint 4: Polish & Enhancements
-10. ⬜ Overnight event handling
-11. ⬜ Calendar navigation improvements
-12. ⬜ Mobile improvements
-13. ⬜ JSON export functionality
+10. In Progress: Overnight event handling (helpers added, styles pending)
+11. ✅ Calendar navigation improvements
+12. ✅ Mobile improvements
+13. ✅ JSON export functionality
 
 ---
 
@@ -266,11 +266,11 @@ interface Template {
 | Template Enhancements | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | Added default start/end time fields and time pickers; styled time controls |
 | Event Export | In Progress | Dec 2, 2025 | - | Export models/service and dialog scaffold added (grouping/sorting/preview) |
 | Multi-Event Scheduling | In Progress | Dec 2, 2025 | - | Multi-event models, service, and dialog scaffold added |
-| Overnight Handling | ⬜ Not Started | - | - | - |
-| Calendar Navigation | ⬜ Not Started | - | - | - |
-| Mobile Improvements | ⬜ Not Started | - | - | - |
-| JSON Export | ⬜ Not Started | - | - | - |
-| Work Events Filter | ⬜ Not Started | - | - | - |
+| Overnight Handling | In Progress | Dec 2, 2025 | - | isOvernightEvent + calculateOvernightNights added; styles still pending |
+| Calendar Navigation | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | navigateByPeriod added for day/week/month |
+| Mobile Improvements | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | Click-outside handler added to close sidenav on mobile |
+| JSON Export | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | downloadEventsAsJSON added to DataService |
+| Work Events Filter | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | isWorkEvent flag and detection implemented |
 
 ---
 
