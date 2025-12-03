@@ -53,7 +53,7 @@ interface OvernightConfig {
 
 ---
 
-#### 2. Event Export with Grouping & Sorting ⬜ Not Started
+#### 2. Event Export with Grouping & Sorting ✅ Completed
 **Source**: Commits `9110749`, `574e4bd`, `99880414`, `4c357679`, `774b4f7e`, `133e6af1`
 **Description**: Export events to text/file with multi-level grouping and sorting options.
 
@@ -241,9 +241,9 @@ interface Template {
 3. ✅ Enhance event-processor.service.ts with work event detection
 
 ### Sprint 2: Export Feature
-4. ⬜ Create export models and interfaces
-5. ⬜ Implement EventExporterService
-6. ⬜ Create ExportDialogComponent with full UI
+4. ✅ Create export models and interfaces
+5. ✅ Implement EventExporterService
+6. ✅ Create ExportDialogComponent with full UI
 
 ### Sprint 3: Multi-Event Scheduling
 7. ✅ Create multi-event models
@@ -264,7 +264,7 @@ interface Template {
 |---------|--------|---------|-----------|-------|
 | Component Modularization | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | SCSS refactor done; settings, calendar, dashboard, analytics, templates moved to external HTML/SCSS |
 | Template Enhancements | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | Added default start/end time fields and time pickers; styled time controls |
-| Event Export | In Progress | Dec 2, 2025 | - | Export models/service and dialog scaffold added (grouping/sorting/preview) |
+| Event Export | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | Models/service/dialog plus calendar export button with default range |
 | Multi-Event Scheduling | In Progress | Dec 2, 2025 | - | Multi-event models, service, and dialog scaffold added |
 | Overnight Handling | In Progress | Dec 2, 2025 | - | isOvernightEvent + calculateOvernightNights added; styles still pending |
 | Calendar Navigation | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | navigateByPeriod added for day/week/month |

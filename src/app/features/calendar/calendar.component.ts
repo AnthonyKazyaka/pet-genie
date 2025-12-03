@@ -36,6 +36,7 @@ import {
 import { DataService, GoogleCalendarService, WorkloadService, EventProcessorService } from '../../core/services';
 import { CalendarEvent, CalendarViewMode, WorkloadLevel, DateRange, getWorkloadLevel } from '../../models';
 import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
+import { ExportDialogComponent } from '../export/export-dialog/export-dialog.component';
 import { firstValueFrom } from 'rxjs';
 
 interface CalendarDay {
@@ -67,6 +68,7 @@ interface CalendarDay {
     MatChipsModule,
     SkeletonLoaderComponent,
     EmptyStateComponent,
+    ExportDialogComponent,
   ],
   styleUrl: './calendar.component.scss',
   templateUrl: './calendar.component.html',
@@ -76,6 +78,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
   private googleCalendarService = inject(GoogleCalendarService);
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
+  private dialog = inject(MatDialog);
   private dialog = inject(MatDialog);
 
   // View state
@@ -340,6 +343,36 @@ export class CalendarComponent implements OnInit, OnDestroy {
         break;
     }
     this.loadEvents();
+  }
+
+  openExportDialog(): void {
+    const { start, end } = this.getRangeForView();
+    this.dialog.open(ExportDialogComponent, {
+      width: '720px',
+      data: {
+        events: this.events(),
+        defaultOptions: {
+          startDate: start,
+          endDate: end,
+          workEventsOnly: true,
+          includeTime: true,
+          includeLocation: true,
+        },
+      },
+    });
+  }
+
+  private getRangeForView(): { start: Date; end: Date } {
+    const date = this.currentDate();
+    switch (this.viewMode) {
+      case 'week':
+        return { start: startOfWeek(date, { weekStartsOn: 0 }), end: endOfWeek(date, { weekStartsOn: 0 }) };
+      case 'day':
+        return { start: startOfDay(date), end: endOfDay(date) };
+      case 'month':
+      default:
+        return { start: startOfMonth(date), end: endOfMonth(date) };
+    }
   }
 
   goToToday(): void {
