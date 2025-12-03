@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>Schedule Multiple Events</h2>
+
+<mat-dialog-content class="multi-dialog">
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Client name</mat-label>
+      <input matInput [(ngModel)]="config.clientName" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Location</mat-label>
+      <input matInput [(ngModel)]="config.location" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Start date</mat-label>
+      <input matInput [matDatepicker]="startPicker" [(ngModel)]="config.startDate" />
+      <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+      <mat-datepicker #startPicker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>End date</mat-label>
+      <input matInput [matDatepicker]="endPicker" [(ngModel)]="config.endDate" />
+      <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+      <mat-datepicker #endPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Booking type</mat-label>
+    <mat-select [(ngModel)]="config.bookingType" (selectionChange)="onBookingTypeChange($event.value)">
+      <mat-option value="daily-visits">Daily visits</mat-option>
+      <mat-option value="overnight-stay">Overnight stay</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <section class="stack">
+    <div class="section-header">
+      <h3>Weekday visits</h3>
+      <button mat-stroked-button color="primary" (click)="addVisitSlot('weekday')">
+        <mat-icon>add</mat-icon>
+        Add visit
+      </button>
+    </div>
+    <div class="visit-list" *ngIf="config.visits.length; else noWeekday">
+      <div class="visit-row" *ngFor="let visit of config.visits; index as i">
+        <mat-form-field appearance="outline">
+          <mat-label>Template</mat-label>
+          <mat-select [(ngModel)]="visit.templateId">
+            <mat-option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Time</mat-label>
+          <input matInput type="time" [(ngModel)]="visit.time" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Duration (min)</mat-label>
+          <input matInput type="number" [(ngModel)]="visit.duration" min="0" />
+        </mat-form-field>
+        <button mat-icon-button color="warn" (click)="removeVisitSlot('weekday', i)" aria-label="Remove visit">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+    <ng-template #noWeekday>
+      <p class="muted">No weekday visits defined.</p>
+    </ng-template>
+  </section>
+
+  <section class="stack">
+    <div class="section-header">
+      <h3>Weekend visits</h3>
+      <mat-slide-toggle [(ngModel)]="weekendSameAsWeekday" (change)="toggleWeekendSame()">Same as weekday</mat-slide-toggle>
+      <button mat-stroked-button color="primary" (click)="addVisitSlot('weekend')" [disabled]="weekendSameAsWeekday">
+        <mat-icon>add</mat-icon>
+        Add weekend visit
+      </button>
+    </div>
+    <div class="visit-list" *ngIf="!weekendSameAsWeekday && config.weekendVisits?.length; else noWeekend">
+      <div class="visit-row" *ngFor="let visit of config.weekendVisits; index as i">
+        <mat-form-field appearance="outline">
+          <mat-label>Template</mat-label>
+          <mat-select [(ngModel)]="visit.templateId">
+            <mat-option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Time</mat-label>
+          <input matInput type="time" [(ngModel)]="visit.time" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Duration (min)</mat-label>
+          <input matInput type="number" [(ngModel)]="visit.duration" min="0" />
+        </mat-form-field>
+        <button mat-icon-button color="warn" (click)="removeVisitSlot('weekend', i)" aria-label="Remove visit">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+    <ng-template #noWeekend>
+      <p class="muted" *ngIf="!config.weekendVisits?.length || weekendSameAsWeekday">Weekend visits follow weekday schedule.</p>
+    </ng-template>
+  </section>
+
+  <section class="stack" *ngIf="config.bookingType === 'overnight-stay'">
+    <div class="section-header">
+      <h3>Overnight</h3>
+    </div>
+    <div class="visit-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Template</mat-label>
+        <mat-select [(ngModel)]="config.overnightConfig.templateId">
+          <mat-option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Arrival</mat-label>
+        <input matInput type="time" [(ngModel)]="config.overnightConfig.arrivalTime" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Departure</mat-label>
+        <input matInput type="time" [(ngModel)]="config.overnightConfig.departureTime" />
+      </mat-form-field>
+    </div>
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="generate()">Generate</button>
+</mat-dialog-actions>

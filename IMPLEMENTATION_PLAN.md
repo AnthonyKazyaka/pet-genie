@@ -13,16 +13,16 @@ This document tracks the implementation of features from the gps-admin repositor
 
 ### High Priority Features
 
-#### 1. Multi-Event Scheduling ⬜ Not Started
+#### 1. Multi-Event Scheduling ✅ In Progress
 **Source**: Commit `d9bbbe5c852c4f2e8a03e7b8040f9528849c628a`
 **Description**: Allow users to create multiple events at once (e.g., daily visits over a date range, overnight stays with drop-in visits).
 
 **Components to Create/Modify**:
-- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.ts`
-- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.html`
-- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.css`
-- [ ] `src/app/models/multi-event.model.ts` - Define multi-event configuration interfaces
-- [ ] `src/app/core/services/multi-event.service.ts` - Business logic for generating multiple events
+- [x] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.ts`
+- [x] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.html`
+- [x] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.scss`
+- [x] `src/app/models/multi-event.model.ts` - Define multi-event configuration interfaces
+- [x] `src/app/core/services/multi-event.service.ts` - Business logic for generating multiple events
 
 **Key Interfaces**:
 ```typescript
@@ -227,7 +227,7 @@ interface Template {
 - [ ] File download utilities
 
 #### Multi-Event Service (New)
-- [ ] Event generation from config
+- [x] Event generation from config
 - [ ] Conflict detection
 - [ ] Validation logic
 
@@ -246,9 +246,9 @@ interface Template {
 6. ⬜ Create ExportDialogComponent with full UI
 
 ### Sprint 3: Multi-Event Scheduling
-7. ⬜ Create multi-event models
-8. ⬜ Implement MultiEventService
-9. ⬜ Create MultiEventDialogComponent
+7. ✅ Create multi-event models
+8. ✅ Implement MultiEventService
+9. ✅ Create MultiEventDialogComponent
 
 ### Sprint 4: Polish & Enhancements
 10. ⬜ Overnight event handling
@@ -265,7 +265,7 @@ interface Template {
 | Component Modularization | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | SCSS refactor done; settings, calendar, dashboard, analytics, templates moved to external HTML/SCSS |
 | Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
 | Event Export | In Progress | Dec 2, 2025 | - | Export models/service and dialog scaffold added (grouping/sorting/preview) |
-| Multi-Event Scheduling | ⬜ Not Started | - | - | - |
+| Multi-Event Scheduling | In Progress | Dec 2, 2025 | - | Multi-event models, service, and dialog scaffold added |
 | Overnight Handling | ⬜ Not Started | - | - | - |
 | Calendar Navigation | ⬜ Not Started | - | - | - |
 | Mobile Improvements | ⬜ Not Started | - | - | - |

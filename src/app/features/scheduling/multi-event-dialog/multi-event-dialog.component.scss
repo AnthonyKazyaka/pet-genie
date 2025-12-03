@@ -1,0 +1,45 @@
+@use '../../../styles/variables' as *;
+
+.multi-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+  min-width: 520px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: $spacing-3;
+}
+
+.stack {
+  @include flex-column;
+  gap: $spacing-3;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  flex-wrap: wrap;
+}
+
+.visit-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.visit-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-3;
+  align-items: center;
+}
+
+.muted {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 13px;
+}
