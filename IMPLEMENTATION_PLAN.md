@@ -1,0 +1,308 @@
+# Pet Genie Implementation Plan
+
+## Overview
+This document tracks the implementation of features from the gps-admin repository into the Angular-based pet-genie application. The goal is to maintain best practices by modularizing code into separate `.ts`, `.css`, and `.html` files while extracting shared logic into services and models.
+
+**Created**: December 2, 2025  
+**Last Updated**: December 2, 2025  
+**Status**: Implementation In Progress (SCSS refactor underway)
+
+---
+
+## Features to Implement (from gps-admin commits)
+
+### High Priority Features
+
+#### 1. Multi-Event Scheduling ⬜ Not Started
+**Source**: Commit `d9bbbe5c852c4f2e8a03e7b8040f9528849c628a`
+**Description**: Allow users to create multiple events at once (e.g., daily visits over a date range, overnight stays with drop-in visits).
+
+**Components to Create/Modify**:
+- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.ts`
+- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.html`
+- [ ] `src/app/features/scheduling/multi-event-dialog/multi-event-dialog.component.css`
+- [ ] `src/app/models/multi-event.model.ts` - Define multi-event configuration interfaces
+- [ ] `src/app/core/services/multi-event.service.ts` - Business logic for generating multiple events
+
+**Key Interfaces**:
+```typescript
+interface MultiEventConfig {
+  clientName: string;
+  location: string;
+  startDate: Date;
+  endDate: Date;
+  bookingType: 'daily-visits' | 'overnight-stay';
+  visits: VisitSlot[];
+  weekendVisits?: VisitSlot[];
+  overnightConfig?: OvernightConfig;
+  dropinConfig?: DropinConfig;
+}
+
+interface VisitSlot {
+  templateId: string;
+  time: string; // HH:mm format
+  duration: number; // minutes
+}
+
+interface OvernightConfig {
+  templateId: string;
+  arrivalTime: string;
+  departureTime: string;
+}
+```
+
+---
+
+#### 2. Event Export with Grouping & Sorting ⬜ Not Started
+**Source**: Commits `9110749`, `574e4bd`, `99880414`, `4c357679`, `774b4f7e`, `133e6af1`
+**Description**: Export events to text/file with multi-level grouping and sorting options.
+
+**Components to Create**:
+- [ ] `src/app/features/export/export-dialog/export-dialog.component.ts`
+- [ ] `src/app/features/export/export-dialog/export-dialog.component.html`
+- [ ] `src/app/features/export/export-dialog/export-dialog.component.css`
+- [ ] `src/app/core/services/event-exporter.service.ts` - Export logic
+- [ ] `src/app/models/export.model.ts` - Export configuration interfaces
+
+**Key Features**:
+- Multi-level grouping (up to 4 levels): date, client, service, week, month
+- Reorderable grouping levels with move up/down buttons
+- Multi-level sorting with add/remove functionality
+- Live preview of export output
+- Copy to clipboard and download as file
+- Filter by work events only
+
+**Key Interfaces**:
+```typescript
+interface ExportOptions {
+  startDate: Date;
+  endDate: Date;
+  includeTime: boolean;
+  includeLocation: boolean;
+  groupLevels: GroupLevel[];
+  sortLevels: SortLevel[];
+  workEventsOnly: boolean;
+}
+
+interface GroupLevel {
+  field: 'date' | 'client' | 'service' | 'week' | 'month';
+  order: number;
+}
+
+interface SortLevel {
+  field: 'date' | 'client' | 'service' | 'time';
+  direction: 'asc' | 'desc';
+}
+```
+
+---
+
+#### 3. Template Enhancements ⬜ Not Started
+**Source**: Commits `2152e629`, `bc612f3b`
+**Description**: Add default start/end times and custom duration controls to templates.
+
+**Files to Modify**:
+- [ ] `src/app/models/template.model.ts` - Add `defaultStartTime` and `defaultEndTime` fields
+- [ ] `src/app/features/templates/template-dialog.component.ts` - Add time picker controls
+- [ ] `src/app/features/templates/template-dialog.component.html` - Update form layout
+- [ ] `src/app/features/templates/template-dialog.component.css` - Duration controls styling
+
+**Changes to Template Interface**:
+```typescript
+interface Template {
+  // Existing fields...
+  defaultStartTime?: string; // HH:mm format
+  defaultEndTime?: string;   // HH:mm format
+  // Duration adjustment controls in UI
+}
+```
+
+---
+
+### Medium Priority Features
+
+#### 4. Overnight Event Handling ⬜ Not Started
+**Source**: Commit `b39e420a`
+**Description**: Enhanced handling and display of overnight events.
+
+**Files to Create/Modify**:
+- [ ] `src/app/core/services/event-processor.service.ts` - Add overnight detection
+- [ ] `src/app/features/calendar/calendar.component.css` - Overnight event styles
+- [ ] Add `isOvernightEvent()` helper method
+- [ ] Add `calculateOvernightNights()` helper method
+
+---
+
+#### 5. Calendar Navigation Enhancement ⬜ Not Started
+**Source**: Commit `08f01f90`
+**Description**: Support varying navigation periods (day/week/month).
+
+**Files to Modify**:
+- [ ] `src/app/features/calendar/calendar.component.ts` - Enhanced navigation methods
+- [ ] Add `navigateByPeriod(period: 'day' | 'week' | 'month', direction: number)` method
+
+---
+
+#### 6. Mobile Sidebar Improvements ⬜ Not Started
+**Source**: Commit `7db4ba82`
+**Description**: Close sidebar when clicking outside on mobile.
+
+**Files to Modify**:
+- [ ] `src/app/layout/app-shell/app-shell.component.ts` - Add click-outside handler
+- [ ] Ensure proper touch target sizes (already addressed in previous work)
+
+---
+
+### Lower Priority Features
+
+#### 7. Download Events as JSON ⬜ Not Started
+**Source**: Commit `ec0ce51d`
+**Description**: Allow users to download all events as a JSON file.
+
+**Files to Modify**:
+- [ ] `src/app/core/services/data.service.ts` - Add `downloadEventsAsJSON()` method
+
+---
+
+#### 8. Work Events Filtering ⬜ Not Started
+**Source**: Commits `bf4dbfd9`, `210f354b`
+**Description**: Filter to show only work events (pet sitting appointments) vs all calendar events.
+
+**Files to Create/Modify**:
+- [ ] `src/app/core/services/event-processor.service.ts` - Add work event detection
+- [ ] `src/app/models/event.model.ts` - Add `isWorkEvent` property
+
+---
+
+## File Modularization Tasks
+
+### Phase 1: Break Apart Existing Component Files ⬜ Not Started
+
+#### Templates Component
+- [ ] Extract `templates.component.ts` template to `templates.component.html`
+- [ ] Extract styles to `templates.component.css` (if inline)
+- [ ] Extract `template-dialog.component.ts` template to `template-dialog.component.html`
+
+#### Calendar Component  
+- [ ] Already has separate `.css` file ✅
+- [ ] Extract template to `calendar.component.html`
+
+#### Dashboard Component
+- [ ] Extract template to `dashboard.component.html`
+- [ ] Create `dashboard.component.css`
+
+#### Analytics Component
+- [ ] Already has separate `.css` file ✅
+- [ ] Extract template to `analytics.component.html`
+
+#### Settings Component
+- [ ] Extract template to `settings.component.html`
+- [ ] Create `settings.component.css`
+
+### SCSS Refactor (CSS → SCSS)
+- [x] SkeletonLoaderComponent styles moved to `skeleton-loader.component.scss` using shared variables/mixins
+- [ ] SettingsComponent styles moved to SCSS
+- [ ] CalendarComponent styles moved to SCSS
+- [ ] DashboardComponent styles moved to SCSS
+- [ ] AnalyticsComponent styles moved to SCSS
+- [ ] EmptyStateComponent styles moved to SCSS
+- [ ] AppComponent styles moved to SCSS
+- [ ] TemplateDialogComponent styles moved to SCSS
+- [ ] TemplatesComponent styles moved to SCSS
+- [ ] ConfirmDialogComponent styles moved to SCSS
+
+### Phase 2: Create Shared Services ⬜ Not Started
+
+#### Event Processor Service Enhancements
+- [ ] Add work event pattern detection
+- [ ] Add overnight event handling
+- [ ] Add event duration calculations
+- [ ] Add client name extraction from titles
+
+#### Export Service (New)
+- [ ] Multi-level grouping logic
+- [ ] Multi-level sorting logic
+- [ ] Text formatting for exports
+- [ ] File download utilities
+
+#### Multi-Event Service (New)
+- [ ] Event generation from config
+- [ ] Conflict detection
+- [ ] Validation logic
+
+---
+
+## Implementation Order
+
+### Sprint 1: Foundation & Modularization
+1. ⬜ Break apart component files (Phase 1)
+2. ⬜ Update Template model with new fields
+3. ⬜ Enhance event-processor.service.ts with work event detection
+
+### Sprint 2: Export Feature
+4. ⬜ Create export models and interfaces
+5. ⬜ Implement EventExporterService
+6. ⬜ Create ExportDialogComponent with full UI
+
+### Sprint 3: Multi-Event Scheduling
+7. ⬜ Create multi-event models
+8. ⬜ Implement MultiEventService
+9. ⬜ Create MultiEventDialogComponent
+
+### Sprint 4: Polish & Enhancements
+10. ⬜ Overnight event handling
+11. ⬜ Calendar navigation improvements
+12. ⬜ Mobile improvements
+13. ⬜ JSON export functionality
+
+---
+
+## Progress Tracking
+
+| Feature | Status | Started | Completed | Notes |
+|---------|--------|---------|-----------|-------|
+| Component Modularization | In Progress | Dec 2, 2025 | - | Kicked off CSS→SCSS refactor; SkeletonLoader uses shared SCSS variables/mixins |
+| Template Enhancements | ⬜ Not Started | - | - | - |
+| Event Export | ⬜ Not Started | - | - | - |
+| Multi-Event Scheduling | ⬜ Not Started | - | - | - |
+| Overnight Handling | ⬜ Not Started | - | - | - |
+| Calendar Navigation | ⬜ Not Started | - | - | - |
+| Mobile Improvements | ⬜ Not Started | - | - | - |
+| JSON Export | ⬜ Not Started | - | - | - |
+| Work Events Filter | ⬜ Not Started | - | - | - |
+
+---
+
+## Technical Notes
+
+### Angular Best Practices
+- Use standalone components with explicit imports
+- Prefer signals over BehaviorSubject for reactive state
+- Use OnPush change detection where possible
+- Lazy load feature modules where appropriate
+
+### Material Design Integration
+- Use Angular Material components consistently
+- Follow Material Design 3 theming patterns
+- Leverage mat-dialog for modal dialogs
+- Use mat-snack-bar for notifications
+
+### File Naming Conventions
+- Components: `feature-name.component.ts/html/css`
+- Services: `service-name.service.ts`
+- Models: `model-name.model.ts`
+- Guards: `guard-name.guard.ts`
+
+### Testing Strategy
+- Unit tests for services with business logic
+- Component tests for UI interactions
+- E2E tests for critical user flows
+
+---
+
+## References
+
+- [Angular Documentation](https://angular.io/docs)
+- [Angular Material](https://material.angular.io/)
+- [Material Design 3](https://m3.material.io/)
+- [gps-admin Repository](https://github.com/AnthonyKazyaka/gps-admin)
