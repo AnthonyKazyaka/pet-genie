@@ -185,19 +185,19 @@ interface Template {
 
 #### Calendar Component  
 - [ ] Already has separate `.css` file ✅
-- [ ] Extract template to `calendar.component.html`
+- [x] Extract template to `calendar.component.html`
 
 #### Dashboard Component
-- [ ] Extract template to `dashboard.component.html`
-- [ ] Create `dashboard.component.css`
+- [x] Extract template to `dashboard.component.html`
+- [x] Create `dashboard.component.scss`
 
 #### Analytics Component
 - [ ] Already has separate `.css` file ✅
-- [ ] Extract template to `analytics.component.html`
+- [x] Extract template to `analytics.component.html`
 
 #### Settings Component
-- [ ] Extract template to `settings.component.html`
-- [ ] Create `settings.component.css`
+- [x] Extract template to `settings.component.html`
+- [x] Create `settings.component.scss`
 
 ### SCSS Refactor (CSS → SCSS)
 - [x] SkeletonLoaderComponent styles moved to `skeleton-loader.component.scss` using shared variables/mixins
@@ -236,7 +236,7 @@ interface Template {
 ## Implementation Order
 
 ### Sprint 1: Foundation & Modularization
-1. ⬜ Break apart component files (Phase 1)
+1. ✅ Break apart component files (Phase 1)
 2. ✅ Update Template model with new fields
 3. ⬜ Enhance event-processor.service.ts with work event detection
 
@@ -262,7 +262,7 @@ interface Template {
 
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
-| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState, Settings, Calendar, Dashboard, Analytics, Templates migrated; Templates feature templates extracted to HTML) |
+| Component Modularization | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | SCSS refactor done; settings, calendar, dashboard, analytics, templates moved to external HTML/SCSS |
 | Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
 | Event Export | ⬜ Not Started | - | - | - |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |

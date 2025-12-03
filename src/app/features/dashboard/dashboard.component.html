@@ -1,0 +1,527 @@
+
+    <div class="dashboard-container">
+      <header class="dashboard-header">
+        <div class="header-content">
+          <h1>Dashboard</h1>
+          <p class="subtitle">Welcome to Pet Genie - Your pet sitting business assistant</p>
+        </div>
+        <div class="header-actions" *ngIf="isConnected()">
+          <button mat-stroked-button routerLink="/calendar">
+            <mat-icon>add</mat-icon>
+            View Calendar
+          </button>
+        </div>
+      </header>
+
+      <!-- Quick Stats -->
+      <section class="stats-grid" aria-label="Quick statistics">
+        @if (isLoading()) {
+          <app-skeleton-loader type="stat" [count]="4"></app-skeleton-loader>
+        } @else {
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('today')"
+            (keydown.enter)="navigateToCalendar('today')"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="getTodayAriaLabel()"
+          >
+            <mat-card-content>
+              <div class="stat-icon">
+                <mat-icon>event</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ todayStats().eventCount }}</span>
+                <span class="stat-label">Today's Appointments</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('today')"
+            (keydown.enter)="navigateToCalendar('today')"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="'Work hours today: ' + todayStats().hoursFormatted + '. Click to view in calendar.'"
+          >
+            <mat-card-content>
+              <div class="stat-icon">
+                <mat-icon>schedule</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ todayStats().hoursFormatted }}</span>
+                <span class="stat-label">Work Hours Today</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card 
+            class="stat-card clickable" 
+            [style.--accent-color]="weekStats().levelColor"
+            (click)="navigateToAnalytics()"
+            (keydown.enter)="navigateToAnalytics()"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="'This week: ' + weekStats().hoursFormatted + ', status ' + weekStats().levelLabel + '. Click to view analytics.'"
+          >
+            <mat-card-content>
+              <div class="stat-icon" [style.background]="weekStats().levelColor">
+                <mat-icon>trending_up</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ weekStats().hoursFormatted }}</span>
+                <span class="stat-label">This Week ({{ weekStats().levelLabel }})</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card 
+            class="stat-card clickable" 
+            (click)="navigateToCalendar('week')"
+            (keydown.enter)="navigateToCalendar('week')"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="'Visits this week: ' + weekStats().eventCount + '. Click to view in calendar.'"
+          >
+            <mat-card-content>
+              <div class="stat-icon visits-icon">
+                <mat-icon>pets</mat-icon>
+              </div>
+              <div class="stat-info">
+                <span class="stat-value">{{ weekStats().eventCount }}</span>
+                <span class="stat-label">Visits This Week</span>
+              </div>
+              <mat-icon class="stat-arrow">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+        }
+      </section>
+
+      <!-- Getting Started / Setup Progress -->
+      @if (!isConnected() || !hasCompletedSetup()) {
+        <section class="getting-started" aria-label="Setup wizard">
+          <mat-card>
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="wizard-icon">auto_fix_high</mat-icon>
+              <mat-card-title>Getting Started</mat-card-title>
+              <mat-card-subtitle>
+                Complete these steps to get the most out of Pet Genie
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <!-- Progress Bar -->
+              <div class="setup-progress">
+                <div class="progress-info">
+                  <span>Setup Progress</span>
+                  <span class="progress-percentage">{{ setupProgress() }}%</span>
+                </div>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="setupProgress()"
+                  aria-label="Setup progress"
+                ></mat-progress-bar>
+              </div>
+
+              <div class="setup-steps">
+                <div class="setup-step" [class.completed]="isConnected()">
+                  <div class="step-indicator">
+                    @if (isConnected()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">1</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Connect Google Calendar</h3>
+                    <p>Link your Google Calendar to import your pet sitting appointments</p>
+                  </div>
+                  @if (!isConnected()) {
+                    <button mat-raised-button color="primary" routerLink="/settings">
+                      <mat-icon>link</mat-icon>
+                      Connect
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasCalendarsSelected()">
+                  <div class="step-indicator">
+                    @if (hasCalendarsSelected()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">2</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Select Calendars</h3>
+                    <p>Choose which calendars contain your pet sitting appointments</p>
+                  </div>
+                  @if (!hasCalendarsSelected()) {
+                    <button 
+                      mat-stroked-button 
+                      routerLink="/settings"
+                      [disabled]="!isConnected()"
+                    >
+                      <mat-icon>event_note</mat-icon>
+                      Select
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasTemplates()">
+                  <div class="step-indicator">
+                    @if (hasTemplates()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">3</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Configure Templates</h3>
+                    <p>Set up appointment templates for quick scheduling</p>
+                  </div>
+                  @if (!hasTemplates()) {
+                    <button mat-stroked-button routerLink="/templates">
+                      <mat-icon>description</mat-icon>
+                      Configure
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+
+                <div class="setup-step" [class.completed]="hasCustomThresholds()">
+                  <div class="step-indicator">
+                    @if (hasCustomThresholds()) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    } @else {
+                      <span class="step-number">4</span>
+                    }
+                  </div>
+                  <div class="step-content">
+                    <h3>Set Workload Thresholds</h3>
+                    <p>Customize your comfort levels for workload monitoring</p>
+                  </div>
+                  @if (!hasCustomThresholds()) {
+                    <button mat-stroked-button routerLink="/settings">
+                      <mat-icon>tune</mat-icon>
+                      Customize
+                    </button>
+                  } @else {
+                    <mat-icon class="step-done">done</mat-icon>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </section>
+      }
+
+      <!-- Upcoming Appointments -->
+      <section class="upcoming-section" aria-label="Upcoming appointments">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Upcoming Appointments</mat-card-title>
+            <mat-card-subtitle>Your schedule for the next 7 days</mat-card-subtitle>
+            <button 
+              mat-stroked-button 
+              class="view-all-btn" 
+              routerLink="/calendar"
+              *ngIf="upcomingEvents().length > 0"
+            >
+              View All
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </mat-card-header>
+          <mat-card-content>
+            @if (isLoading()) {
+              <app-skeleton-loader type="list" [count]="5"></app-skeleton-loader>
+            } @else if (upcomingEvents().length === 0) {
+              <app-empty-state
+                icon="event_available"
+                title="No upcoming appointments"
+                [description]="isConnected() ? 'Your schedule is clear for the next 7 days.' : 'Connect your calendar to see your schedule.'"
+                [actionLabel]="isConnected() ? 'View Calendar' : 'Connect Calendar'"
+                [actionLink]="isConnected() ? '/calendar' : '/settings'"
+                [actionIcon]="isConnected() ? 'calendar_month' : 'link'"
+                [compact]="true"
+              ></app-empty-state>
+            } @else {
+              <div class="events-list">
+                @for (group of groupedEvents(); track group.label) {
+                  <div class="event-group">
+                    <div class="group-header">
+                      <span class="group-label">{{ group.label }}</span>
+                      <span class="group-count">{{ group.events.length }} {{ group.events.length === 1 ? 'event' : 'events' }}</span>
+                    </div>
+                    @for (event of group.events; track event.id) {
+                      <div 
+                        class="event-item" 
+                        [class.work-event]="event.isWorkEvent"
+                        tabindex="0"
+                        role="article"
+                        [attr.aria-label]="getEventAriaLabel(event)"
+                      >
+                        <div class="event-time-block">
+                          <span class="event-time">{{ format(event.start, 'h:mm a') }}</span>
+                          <span class="event-duration">{{ getEventDuration(event) }}</span>
+                        </div>
+                        <div class="event-details">
+                          <span class="event-title">{{ event.title }}</span>
+                          <span class="event-client" *ngIf="event.clientName">
+                            <mat-icon>pets</mat-icon>
+                            {{ event.clientName }}
+                          </span>
+                          <span class="event-location" *ngIf="event.location">
+                            <mat-icon>location_on</mat-icon>
+                            {{ event.location }}
+                          </span>
+                        </div>
+                        <mat-icon class="event-type-icon" [matTooltip]="event.isWorkEvent ? 'Pet sitting appointment' : 'Personal event'">
+                          {{ event.isWorkEvent ? 'pets' : 'event' }}
+                        </mat-icon>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- Quick Actions -->
+      @if (isConnected()) {
+        <section class="quick-actions" aria-label="Quick actions">
+          <h2>Quick Actions</h2>
+          <div class="actions-grid">
+            <button mat-stroked-button class="action-card" routerLink="/calendar">
+              <mat-icon>calendar_month</mat-icon>
+              <span>View Calendar</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/templates">
+              <mat-icon>add_circle</mat-icon>
+              <span>New Template</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/analytics">
+              <mat-icon>insights</mat-icon>
+              <span>View Analytics</span>
+            </button>
+            <button mat-stroked-button class="action-card" routerLink="/settings">
+              <mat-icon>settings</mat-icon>
+              <span>Settings</span>
+            </button>
+          </div>
+        </section>
+      }
+    </div>
+  `,
+})
+export class DashboardComponent implements OnInit, OnDestroy {
+  private dataService = inject(DataService);
+  private workloadService = inject(WorkloadService);
+  private googleCalendarService = inject(GoogleCalendarService);
+  private eventProcessor = inject(EventProcessorService);
+  private router = inject(Router);
+
+  isLoading = signal(false);
+  events = signal<CalendarEvent[]>([]);
+  private refreshListener: (() => void) | null = null;
+
+  // Connection status
+  isConnected = computed(() => this.googleCalendarService.isSignedIn());
+
+  // Setup progress tracking
+  hasCalendarsSelected = computed(() => {
+    const settings = this.dataService.settings();
+    return settings.selectedCalendars.length > 0;
+  });
+
+  hasTemplates = computed(() => {
+    // For now, we assume templates exist if connected
+    return true;
+  });
+
+  hasCustomThresholds = computed(() => {
+    const settings = this.dataService.settings();
+    // Check if thresholds differ from defaults
+    return settings.thresholds.daily.comfortable !== 4 || 
+           settings.thresholds.weekly.comfortable !== 20;
+  });
+
+  hasCompletedSetup = computed(() => {
+    return this.isConnected() && 
+           this.hasCalendarsSelected() && 
+           this.hasTemplates() && 
+           this.hasCustomThresholds();
+  });
+
+  setupProgress = computed(() => {
+    let progress = 0;
+    if (this.isConnected()) progress += 25;
+    if (this.hasCalendarsSelected()) progress += 25;
+    if (this.hasTemplates()) progress += 25;
+    if (this.hasCustomThresholds()) progress += 25;
+    return progress;
+  });
+
+  todayStats = computed(() => {
+    const todayEvents = this.events().filter(e => {
+      const today = startOfDay(new Date());
+      const tomorrow = startOfDay(addDays(new Date(), 1));
+      return e.start >= today && e.start < tomorrow;
+    });
+    const workEvents = todayEvents.filter(e => e.isWorkEvent);
+    const totalMinutes = workEvents.reduce((sum, e) => {
+      return sum + this.eventProcessor.calculateEventDurationForDay(e, new Date());
+    }, 0);
+
+    return {
+      eventCount: workEvents.length,
+      hoursFormatted: this.workloadService.formatHours(totalMinutes / 60),
+    };
+  });
+
+  weekStats = computed(() => {
+    const summary = this.workloadService.getThisWeekSummary();
+    return {
+      eventCount: summary.eventCount,
+      hoursFormatted: this.workloadService.formatHours(
+        summary.totalWorkHours + summary.totalTravelHours
+      ),
+      levelLabel: this.workloadService.getWorkloadLabel(summary.level),
+      levelColor: this.workloadService.getWorkloadColor(summary.level),
+    };
+  });
+
+  upcomingEvents = computed(() => {
+    const allEvents = this.events();
+    const now = new Date();
+    const weekFromNow = addDays(now, 7);
+
+    return allEvents
+      .filter((e) => e.isWorkEvent && e.start >= now && e.start <= weekFromNow)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+      .slice(0, 15);
+  });
+
+  // Group events by day for display
+  groupedEvents = computed(() => {
+    const events = this.upcomingEvents();
+    const groups: { label: string; date: Date; events: CalendarEvent[] }[] = [];
+
+    events.forEach(event => {
+      const eventDate = startOfDay(event.start);
+      let label = format(eventDate, 'EEEE, MMMM d');
+      
+      if (isToday(eventDate)) {
+        label = 'Today';
+      } else if (isTomorrow(eventDate)) {
+        label = 'Tomorrow';
+      }
+
+      const existingGroup = groups.find(g => 
+        startOfDay(g.date).getTime() === eventDate.getTime()
+      );
+
+      if (existingGroup) {
+        existingGroup.events.push(event);
+      } else {
+        groups.push({ label, date: eventDate, events: [event] });
+      }
+    });
+
+    return groups;
+  });
+
+  // date-fns format exposed for template
+  format = format;
+
+  async ngOnInit(): Promise<void> {
+    if (this.googleCalendarService.isSignedIn()) {
+      await this.loadEvents();
+    }
+
+    // Listen for refresh events from app shell
+    this.refreshListener = () => this.loadEvents();
+    window.addEventListener('pet-genie:refresh', this.refreshListener);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshListener) {
+      window.removeEventListener('pet-genie:refresh', this.refreshListener);
+    }
+  }
+
+  async loadEvents(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+
+      // Ensure Google Calendar is initialized before loading events
+      if (!this.googleCalendarService.isInitialized()) {
+        const settings = this.dataService.settings();
+        if (settings.googleClientId) {
+          await this.googleCalendarService.initialize(settings.googleClientId);
+        } else {
+          console.warn('Cannot load events: Google Client ID not configured');
+          return;
+        }
+      }
+
+      const settings = this.dataService.settings();
+      const dateRange: DateRange = {
+        start: startOfDay(new Date()),
+        end: endOfDay(addDays(new Date(), 14)), // Next 2 weeks
+      };
+
+      const events = await firstValueFrom(
+        this.googleCalendarService.fetchEventsFromCalendars(settings.selectedCalendars, dateRange)
+      );
+
+      const processedEvents = this.eventProcessor.processEvents(events ?? []);
+      this.events.set(processedEvents);
+    } catch (error) {
+      console.error('Failed to load events:', error);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  navigateToCalendar(view: 'today' | 'week'): void {
+    this.router.navigate(['/calendar']);
+  }
+
+  navigateToAnalytics(): void {
+    this.router.navigate(['/analytics']);
+  }
+
+  getEventDuration(event: CalendarEvent): string {
+    const durationMs = event.end.getTime() - event.start.getTime();
+    const minutes = Math.round(durationMs / (1000 * 60));
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
+
+  getEventAriaLabel(event: CalendarEvent): string {
+    const time = format(event.start, 'h:mm a');
+    const duration = this.getEventDuration(event);
+    let label = `${event.title} at ${time}, ${duration}`;
+    if (event.clientName) {
+      label += `, client: ${event.clientName}`;
+    }
+    return label;
+  }
+
+  getTodayAriaLabel(): string {
+    return `Today's appointments: ${this.todayStats().eventCount}. Click to view in calendar.
