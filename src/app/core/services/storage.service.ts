@@ -20,7 +20,8 @@ export class StorageService {
       if (!item) return null;
       return JSON.parse(item) as T;
     } catch (error) {
-      console.error(`Error reading from localStorage: ${key}`, error);
+      // Invalid JSON or access issue: remove corrupted entry to avoid repeated errors
+      this.remove(key);
       return null;
     }
   }
