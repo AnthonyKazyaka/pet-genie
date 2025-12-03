@@ -85,7 +85,7 @@ interface DayOfWeekStats {
     SkeletonLoaderComponent,
     EmptyStateComponent,
   ],
-  styleUrl: './analytics.component.css',
+  styleUrl: './analytics.component.scss',
   template: `
     <div class="analytics-container">
       <header class="page-header">

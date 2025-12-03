@@ -34,7 +34,7 @@ import { TemplateDialogComponent, TemplateDialogData } from './template-dialog.c
     ConfirmDialogComponent,
     EmptyStateComponent,
   ],
-  styleUrl: './templates.component.css',
+  styleUrl: './templates.component.scss',
   template: `
     <div class="templates-container">
       <header class="page-header">

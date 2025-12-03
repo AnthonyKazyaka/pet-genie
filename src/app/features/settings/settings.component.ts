@@ -46,7 +46,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared';
     MatTooltipModule,
     ConfirmDialogComponent,
   ],
-  styleUrl: './settings.component.css',
+  styleUrl: './settings.component.scss',
   template: `
     <div class="settings-container">
       <header class="page-header">

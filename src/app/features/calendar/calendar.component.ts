@@ -68,7 +68,7 @@ interface CalendarDay {
     SkeletonLoaderComponent,
     EmptyStateComponent,
   ],
-  styleUrl: './calendar.component.css',
+  styleUrl: './calendar.component.scss',
   template: `
     <div class="calendar-container" (keydown)="handleKeydown($event)">
       <header class="calendar-header">

@@ -30,7 +30,7 @@ import { format, startOfDay, endOfDay, addDays, isToday, isTomorrow } from 'date
     SkeletonLoaderComponent,
     EmptyStateComponent,
   ],
-  styleUrl: './dashboard.component.css',
+  styleUrl: './dashboard.component.scss',
   template: `
     <div class="dashboard-container">
       <header class="dashboard-header">

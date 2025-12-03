@@ -32,7 +32,7 @@ export interface TemplateDialogData {
     MatSlideToggleModule,
     MatDividerModule,
   ],
-  styleUrl: './template-dialog.component.css',
+  styleUrl: './template-dialog.component.scss',
   template: `
     <div class="template-dialog">
       <div class="dialog-header">

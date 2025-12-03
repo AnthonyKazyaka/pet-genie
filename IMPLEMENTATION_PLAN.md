@@ -204,12 +204,12 @@ interface Template {
 - [x] AppShell styles moved to `app-shell.component.scss`
 - [x] ConfirmDialog styles moved to `confirm-dialog.component.scss`
 - [x] EmptyState styles moved to `empty-state.component.scss`
-- [ ] SettingsComponent styles moved to SCSS
-- [ ] CalendarComponent styles moved to SCSS
-- [ ] DashboardComponent styles moved to SCSS
-- [ ] AnalyticsComponent styles moved to SCSS
-- [ ] TemplateDialogComponent styles moved to SCSS
-- [ ] TemplatesComponent styles moved to SCSS
+- [x] SettingsComponent styles moved to SCSS
+- [x] CalendarComponent styles moved to SCSS
+- [x] DashboardComponent styles moved to SCSS
+- [x] AnalyticsComponent styles moved to SCSS
+- [x] TemplateDialogComponent styles moved to SCSS
+- [x] TemplatesComponent styles moved to SCSS
 - [ ] AppComponent styles moved to SCSS
 
 ### Phase 2: Create Shared Services ⬜ Not Started
@@ -262,7 +262,7 @@ interface Template {
 
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
-| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState migrated to shared variables/mixins) |
+| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState, Settings, Calendar, Dashboard, Analytics, Templates migrated) |
 | Template Enhancements | ⬜ Not Started | - | - | - |
 | Event Export | ⬜ Not Started | - | - | - |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |
