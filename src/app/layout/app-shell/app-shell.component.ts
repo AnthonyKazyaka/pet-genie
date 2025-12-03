@@ -38,7 +38,7 @@ interface Breadcrumb {
     MatMenuModule,
     MatBadgeModule,
   ],
-  styleUrl: './app-shell.component.css',
+  styleUrl: './app-shell.component.scss',
   template: `
     <mat-sidenav-container class="app-container">
       <!-- Sidebar (Desktop) -->

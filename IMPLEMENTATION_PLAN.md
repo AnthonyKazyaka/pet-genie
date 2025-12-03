@@ -201,15 +201,16 @@ interface Template {
 
 ### SCSS Refactor (CSS → SCSS)
 - [x] SkeletonLoaderComponent styles moved to `skeleton-loader.component.scss` using shared variables/mixins
+- [x] AppShell styles moved to `app-shell.component.scss`
+- [x] ConfirmDialog styles moved to `confirm-dialog.component.scss`
+- [x] EmptyState styles moved to `empty-state.component.scss`
 - [ ] SettingsComponent styles moved to SCSS
 - [ ] CalendarComponent styles moved to SCSS
 - [ ] DashboardComponent styles moved to SCSS
 - [ ] AnalyticsComponent styles moved to SCSS
-- [ ] EmptyStateComponent styles moved to SCSS
-- [ ] AppComponent styles moved to SCSS
 - [ ] TemplateDialogComponent styles moved to SCSS
 - [ ] TemplatesComponent styles moved to SCSS
-- [ ] ConfirmDialogComponent styles moved to SCSS
+- [ ] AppComponent styles moved to SCSS
 
 ### Phase 2: Create Shared Services ⬜ Not Started
 
@@ -261,7 +262,7 @@ interface Template {
 
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
-| Component Modularization | In Progress | Dec 2, 2025 | - | Kicked off CSS→SCSS refactor; SkeletonLoader uses shared SCSS variables/mixins |
+| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState migrated to shared variables/mixins) |
 | Template Enhancements | ⬜ Not Started | - | - | - |
 | Event Export | ⬜ Not Started | - | - | - |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |

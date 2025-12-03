@@ -1,0 +1,49 @@
+@use '../../../../styles/variables' as *;
+
+.confirm-dialog {
+  min-width: 320px;
+  max-width: 480px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-4 $spacing-6 0;
+}
+
+.dialog-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+
+  &.warn { color: var(--error); }
+  &.primary { color: var(--primary); }
+  &.accent { color: var(--secondary); }
+}
+
+h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+mat-dialog-content {
+  padding: $spacing-4 $spacing-6;
+
+  p {
+    margin: 0;
+    color: var(--on-surface-variant);
+    line-height: 1.6;
+  }
+}
+
+mat-dialog-actions {
+  padding: $spacing-4 $spacing-6;
+  gap: $spacing-2;
+}
+
+[data-theme="dark"] .dialog-icon.warn { color: var(--error); }
+[data-theme="dark"] .dialog-icon.primary { color: var(--primary); }
+[data-theme="dark"] .dialog-icon.accent { color: var(--secondary); }
