@@ -14,6 +14,8 @@ export interface Template {
   travelBuffer: number; // in minutes
   defaultNotes?: string;
   color?: string;
+  defaultStartTime?: string; // HH:mm
+  defaultEndTime?: string;   // HH:mm
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +39,8 @@ export interface CreateTemplateDto {
   travelBuffer?: number;
   defaultNotes?: string;
   color?: string;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
 }
 
 export interface UpdateTemplateDto {
@@ -48,6 +52,8 @@ export interface UpdateTemplateDto {
   travelBuffer?: number;
   defaultNotes?: string;
   color?: string;
+  defaultStartTime?: string;
+  defaultEndTime?: string;
 }
 
 /**

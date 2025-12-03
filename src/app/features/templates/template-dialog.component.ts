@@ -88,6 +88,20 @@ export interface TemplateDialogData {
             </mat-form-field>
           </div>
 
+          <div class="row">
+            <mat-form-field appearance="outline" class="flex-1">
+              <mat-label>Default start time</mat-label>
+              <input matInput type="time" formControlName="defaultStartTime" />
+              <mat-hint>Optional: HH:mm</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="flex-1">
+              <mat-label>Default end time</mat-label>
+              <input matInput type="time" formControlName="defaultEndTime" />
+              <mat-hint>Optional: HH:mm</mat-hint>
+            </mat-form-field>
+          </div>
+
           <mat-divider></mat-divider>
 
           <!-- Travel Settings -->
@@ -136,6 +150,9 @@ export interface TemplateDialogData {
                   {{ getSelectedTypeLabel() }} · {{ getSelectedDurationLabel() }}
                   @if (form.get('includeTravel')?.value) {
                     <span> · +{{ form.get('travelBuffer')?.value }}min travel</span>
+                  }
+                  @if (getTimeRangeLabel()) {
+                    <span> · {{ getTimeRangeLabel() }}</span>
                   }
                 </span>
               </div>
@@ -196,6 +213,8 @@ export class TemplateDialogComponent {
     includeTravel: [this.data.template?.includeTravel ?? true],
     travelBuffer: [this.data.template?.travelBuffer || 15],
     defaultNotes: [this.data.template?.defaultNotes || ''],
+    defaultStartTime: [this.data.template?.defaultStartTime || ''],
+    defaultEndTime: [this.data.template?.defaultEndTime || ''],
   });
 
   selectIcon(emoji: string): void {
@@ -212,6 +231,18 @@ export class TemplateDialogComponent {
     return this.durations.find(d => d.value === duration)?.label || `${duration} min`;
   }
 
+  getTimeRangeLabel(): string {
+    const start = this.form.get('defaultStartTime')?.value;
+    const end = this.form.get('defaultEndTime')?.value;
+    if (!start && !end) {
+      return '';
+    }
+    if (start && end) {
+      return `${start} - ${end}`;
+    }
+    return start || end;
+  }
+
   save(): void {
     if (this.form.valid) {
       const formValue = this.form.value;
@@ -224,6 +255,8 @@ export class TemplateDialogComponent {
         includeTravel: formValue.includeTravel,
         travelBuffer: formValue.includeTravel ? formValue.travelBuffer : 0,
         defaultNotes: formValue.defaultNotes,
+        defaultStartTime: formValue.defaultStartTime || undefined,
+        defaultEndTime: formValue.defaultEndTime || undefined,
         updatedAt: new Date(),
       };
 

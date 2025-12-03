@@ -97,15 +97,15 @@ interface SortLevel {
 
 ---
 
-#### 3. Template Enhancements ⬜ Not Started
+#### 3. Template Enhancements ✅ In Progress
 **Source**: Commits `2152e629`, `bc612f3b`
 **Description**: Add default start/end times and custom duration controls to templates.
 
 **Files to Modify**:
-- [ ] `src/app/models/template.model.ts` - Add `defaultStartTime` and `defaultEndTime` fields
-- [ ] `src/app/features/templates/template-dialog.component.ts` - Add time picker controls
-- [ ] `src/app/features/templates/template-dialog.component.html` - Update form layout
-- [ ] `src/app/features/templates/template-dialog.component.css` - Duration controls styling
+- [x] `src/app/models/template.model.ts` - Add `defaultStartTime` and `defaultEndTime` fields
+- [x] `src/app/features/templates/template-dialog.component.ts` - Add time picker controls
+- [x] `src/app/features/templates/template-dialog.component.html` - Update form layout
+- [ ] `src/app/features/templates/template-dialog.component.scss` - Duration controls styling
 
 **Changes to Template Interface**:
 ```typescript
@@ -237,7 +237,7 @@ interface Template {
 
 ### Sprint 1: Foundation & Modularization
 1. ⬜ Break apart component files (Phase 1)
-2. ⬜ Update Template model with new fields
+2. ✅ Update Template model with new fields
 3. ⬜ Enhance event-processor.service.ts with work event detection
 
 ### Sprint 2: Export Feature
@@ -263,7 +263,7 @@ interface Template {
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
 | Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState, Settings, Calendar, Dashboard, Analytics, Templates migrated) |
-| Template Enhancements | ⬜ Not Started | - | - | - |
+| Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
 | Event Export | ⬜ Not Started | - | - | - |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |
 | Overnight Handling | ⬜ Not Started | - | - | - |
