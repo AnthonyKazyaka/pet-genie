@@ -42,7 +42,7 @@ const schema = a.schema({
     .model({
       name: a.string().required(),
       icon: a.string().default('🐾'),
-      type: a.enum(['overnight', 'housesit', 'drop-in', 'walk', 'meet-greet', 'nail-trim', 'other']),
+      type: a.enum(['overnight', 'housesit', 'drop_in', 'walk', 'meet_greet', 'nail_trim', 'other']),
       duration: a.integer().required(), // in minutes
       includeTravel: a.boolean().default(true),
       travelBuffer: a.integer().default(15),
