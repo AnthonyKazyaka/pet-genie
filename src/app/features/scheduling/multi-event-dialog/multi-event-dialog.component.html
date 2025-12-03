@@ -125,6 +125,11 @@
       </mat-form-field>
     </div>
   </section>
+
+  <mat-error *ngIf="validationErrors().length">
+    {{ validationErrors()[0] }}
+  </mat-error>
+  <mat-hint *ngIf="hasConflicts()">Conflicts detected with existing events.</mat-hint>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

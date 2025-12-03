@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { addDays, isWeekend, parse, set } from 'date-fns';
+import { addDays, isWeekend, isBefore, isAfter, isEqual, set } from 'date-fns';
 import { CalendarEvent } from '../../models/event.model';
 import {
   DropinConfig,
@@ -21,6 +21,11 @@ import { Template } from '../../models/template.model';
 export class MultiEventService {
   generateEvents(config: MultiEventConfig, templates: Template[]): GeneratedEvent[] {
     const events: GeneratedEvent[] = [];
+
+    const validationErrors = this.validateConfig(config);
+    if (validationErrors.length) {
+      throw new Error(`Invalid multi-event config: ${validationErrors.join('; ')}`);
+    }
 
     for (
       let date = new Date(config.startDate);
@@ -54,6 +59,37 @@ export class MultiEventService {
     }
 
     return events;
+  }
+
+  validateConfig(config: MultiEventConfig): string[] {
+    const errors: string[] = [];
+    if (!config.clientName?.trim()) errors.push('Client name is required');
+    if (!config.startDate || !config.endDate) errors.push('Start and end dates are required');
+    if (config.startDate && config.endDate && isAfter(config.startDate, config.endDate)) {
+      errors.push('Start date must be before end date');
+    }
+    if (!config.visits?.length && config.bookingType === 'daily-visits') {
+      errors.push('At least one visit slot is required');
+    }
+    if (config.bookingType === 'overnight-stay' && !config.overnightConfig) {
+      errors.push('Overnight configuration is required for overnight stay');
+    }
+    return errors;
+  }
+
+  detectConflicts(existingEvents: CalendarEvent[], generated: GeneratedEvent[]): GeneratedEvent[] {
+    return generated.filter((gen) =>
+      existingEvents.some((evt) => this.overlaps(evt.start, evt.end, gen.start, gen.end))
+    );
+  }
+
+  private overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+    return (
+      isBefore(aStart, bEnd) &&
+      isAfter(aEnd, bStart) ||
+      isEqual(aStart, bStart) ||
+      isEqual(aEnd, bEnd)
+    );
   }
 
   private getVisitSlotsForDate(config: MultiEventConfig, date: Date): VisitSlot[] {

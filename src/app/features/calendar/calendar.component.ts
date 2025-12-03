@@ -318,32 +318,25 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   navigatePrevious(): void {
-    const date = this.currentDate();
-    switch (this.viewMode) {
-      case 'month':
-        this.currentDate.set(subMonths(date, 1));
-        break;
-      case 'week':
-        this.currentDate.set(subWeeks(date, 1));
-        break;
-      case 'day':
-        this.currentDate.set(subDays(date, 1));
-        break;
-    }
-    this.loadEvents();
+    this.navigateByPeriod(this.viewMode, -1);
   }
 
   navigateNext(): void {
+    this.navigateByPeriod(this.viewMode, 1);
+  }
+
+  navigateByPeriod(period: 'day' | 'week' | 'month', direction: number): void {
     const date = this.currentDate();
-    switch (this.viewMode) {
+    switch (period) {
       case 'month':
-        this.currentDate.set(addMonths(date, 1));
+        this.currentDate.set(direction > 0 ? addMonths(date, 1) : subMonths(date, 1));
         break;
       case 'week':
-        this.currentDate.set(addWeeks(date, 1));
+        this.currentDate.set(direction > 0 ? addWeeks(date, 1) : subWeeks(date, 1));
         break;
       case 'day':
-        this.currentDate.set(addDays(date, 1));
+      default:
+        this.currentDate.set(direction > 0 ? addDays(date, 1) : subDays(date, 1));
         break;
     }
     this.loadEvents();

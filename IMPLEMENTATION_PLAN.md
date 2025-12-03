@@ -97,7 +97,7 @@ interface SortLevel {
 
 ---
 
-#### 3. Template Enhancements ✅ In Progress
+#### 3. Template Enhancements ✅ Completed
 **Source**: Commits `2152e629`, `bc612f3b`
 **Description**: Add default start/end times and custom duration controls to templates.
 
@@ -105,7 +105,7 @@ interface SortLevel {
 - [x] `src/app/models/template.model.ts` - Add `defaultStartTime` and `defaultEndTime` fields
 - [x] `src/app/features/templates/template-dialog.component.ts` - Add time picker controls
 - [x] `src/app/features/templates/template-dialog.component.html` - Update form layout
-- [ ] `src/app/features/templates/template-dialog.component.scss` - Duration controls styling
+- [x] `src/app/features/templates/template-dialog.component.scss` - Duration controls styling
 
 **Changes to Template Interface**:
 ```typescript
@@ -263,7 +263,7 @@ interface Template {
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
 | Component Modularization | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | SCSS refactor done; settings, calendar, dashboard, analytics, templates moved to external HTML/SCSS |
-| Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
+| Template Enhancements | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | Added default start/end time fields and time pickers; styled time controls |
 | Event Export | In Progress | Dec 2, 2025 | - | Export models/service and dialog scaffold added (grouping/sorting/preview) |
 | Multi-Event Scheduling | In Progress | Dec 2, 2025 | - | Multi-event models, service, and dialog scaffold added |
 | Overnight Handling | ⬜ Not Started | - | - | - |

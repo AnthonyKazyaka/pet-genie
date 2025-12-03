@@ -37,6 +37,10 @@ mat-dialog-actions {
 .row {
   display: flex;
   gap: 16px;
+
+  .time-field {
+    min-width: 180px;
+  }
 }
 
 .flex-1 {
@@ -78,6 +82,12 @@ mat-dialog-actions {
 .icon-option.selected {
   border-color: var(--primary);
   background: var(--primary-container);
+}
+
+.time-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 /* Travel Section */

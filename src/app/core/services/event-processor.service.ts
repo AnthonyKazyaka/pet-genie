@@ -11,6 +11,7 @@ import {
   isSameDay,
   isAfter,
   isBefore,
+  differenceInCalendarDays,
 } from 'date-fns';
 
 /**
@@ -129,6 +130,17 @@ export class EventProcessorService {
     }
 
     return false;
+  }
+
+  /**
+   * Calculate number of nights for an overnight event (min 1 when crossing midnight)
+   */
+  calculateOvernightNights(event: CalendarEvent): number {
+    if (!this.isOvernightEvent(event)) {
+      return 0;
+    }
+    const nights = differenceInCalendarDays(event.end, event.start);
+    return Math.max(1, nights);
   }
 
   /**
