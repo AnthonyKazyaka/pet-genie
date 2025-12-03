@@ -81,40 +81,6 @@ export class EventProcessorService {
   }
 
   /**
-   * Check if event title matches work patterns
-   */
-  private matchesWorkPattern(title: string): boolean {
-    // Check for duration suffix (most common: "Fluffy - 30")
-    if (this.workEventPatterns.minutesSuffix.test(title)) {
-      return true;
-    }
-
-    // Check for specific work event types
-    if (this.workEventPatterns.meetAndGreet.test(title)) {
-      return true;
-    }
-
-    if (this.workEventPatterns.housesitSuffix.test(title)) {
-      return true;
-    }
-
-    if (this.workEventPatterns.overnight.test(title)) {
-      return true;
-    }
-
-    if (this.workEventPatterns.nailTrim.test(title)) {
-      return true;
-    }
-
-    // Check for pet name pattern (e.g., "Fluffy -", "Max & Bella -")
-    if (this.workEventPatterns.petNamePattern.test(title)) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
    * Check if event is definitely personal (not work)
    */
   isDefinitelyPersonal(title: string): boolean {
@@ -123,6 +89,22 @@ export class EventProcessorService {
         return true;
       }
     }
+    return false;
+  }
+
+  /**
+   * Returns true if event title likely represents work (pet-sitting) based on patterns.
+   * This covers multi-pet names, duration suffixes, and explicit service markers.
+   */
+  private matchesWorkPattern(title: string): boolean {
+    if (this.workEventPatterns.minutesSuffix.test(title)) return true;
+    if (this.workEventPatterns.meetAndGreet.test(title)) return true;
+    if (this.workEventPatterns.housesitSuffix.test(title)) return true;
+    if (this.workEventPatterns.overnight.test(title)) return true;
+    if (this.workEventPatterns.nailTrim.test(title)) return true;
+    if (this.workEventPatterns.walk.test(title)) return true;
+    if (this.workEventPatterns.dropIn.test(title)) return true;
+    if (this.workEventPatterns.petNamePattern.test(title)) return true;
     return false;
   }
 

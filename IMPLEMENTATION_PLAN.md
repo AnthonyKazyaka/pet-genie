@@ -58,11 +58,11 @@ interface OvernightConfig {
 **Description**: Export events to text/file with multi-level grouping and sorting options.
 
 **Components to Create**:
-- [ ] `src/app/features/export/export-dialog/export-dialog.component.ts`
-- [ ] `src/app/features/export/export-dialog/export-dialog.component.html`
-- [ ] `src/app/features/export/export-dialog/export-dialog.component.css`
-- [ ] `src/app/core/services/event-exporter.service.ts` - Export logic
-- [ ] `src/app/models/export.model.ts` - Export configuration interfaces
+- [x] `src/app/features/export/export-dialog/export-dialog.component.ts`
+- [x] `src/app/features/export/export-dialog/export-dialog.component.html`
+- [x] `src/app/features/export/export-dialog/export-dialog.component.scss`
+- [x] `src/app/core/services/event-exporter.service.ts` - Export logic
+- [x] `src/app/models/export.model.ts` - Export configuration interfaces
 
 **Key Features**:
 - Multi-level grouping (up to 4 levels): date, client, service, week, month
@@ -238,7 +238,7 @@ interface Template {
 ### Sprint 1: Foundation & Modularization
 1. ✅ Break apart component files (Phase 1)
 2. ✅ Update Template model with new fields
-3. ⬜ Enhance event-processor.service.ts with work event detection
+3. ✅ Enhance event-processor.service.ts with work event detection
 
 ### Sprint 2: Export Feature
 4. ⬜ Create export models and interfaces
@@ -264,7 +264,7 @@ interface Template {
 |---------|--------|---------|-----------|-------|
 | Component Modularization | ✅ Completed | Dec 2, 2025 | Dec 2, 2025 | SCSS refactor done; settings, calendar, dashboard, analytics, templates moved to external HTML/SCSS |
 | Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
-| Event Export | ⬜ Not Started | - | - | - |
+| Event Export | In Progress | Dec 2, 2025 | - | Export models/service and dialog scaffold added (grouping/sorting/preview) |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |
 | Overnight Handling | ⬜ Not Started | - | - | - |
 | Calendar Navigation | ⬜ Not Started | - | - | - |

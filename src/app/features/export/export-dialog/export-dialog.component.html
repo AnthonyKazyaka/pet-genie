@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>Export Events</h2>
+
+<mat-dialog-content class="export-dialog">
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Start date</mat-label>
+      <input matInput [matDatepicker]="startPicker" [(ngModel)]="options.startDate" (dateChange)="generatePreview()" />
+      <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+      <mat-datepicker #startPicker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>End date</mat-label>
+      <input matInput [matDatepicker]="endPicker" [(ngModel)]="options.endDate" (dateChange)="generatePreview()" />
+      <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+      <mat-datepicker #endPicker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="options">
+    <mat-checkbox [(ngModel)]="options.includeTime" (change)="generatePreview()">Include time</mat-checkbox>
+    <mat-checkbox [(ngModel)]="options.includeLocation" (change)="generatePreview()">Include location</mat-checkbox>
+    <mat-checkbox [(ngModel)]="options.workEventsOnly" (change)="generatePreview()">Work events only</mat-checkbox>
+  </div>
+
+  <div class="preview-card">
+    <div class="preview-header">
+      <div>
+        <h3>Preview</h3>
+        <p>{{ count }} events</p>
+      </div>
+      <button mat-stroked-button color="primary" (click)="generatePreview()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+    <pre class="preview-content">{{ preview }}</pre>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Close</button>
+  <button mat-raised-button color="primary">
+    <mat-icon>download</mat-icon>
+    Export
+  </button>
+</mat-dialog-actions>
