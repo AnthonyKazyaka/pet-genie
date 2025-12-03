@@ -23,6 +23,65 @@
     <mat-checkbox [(ngModel)]="options.workEventsOnly" (change)="generatePreview()">Work events only</mat-checkbox>
   </div>
 
+  <section class="stack">
+    <div class="section-header">
+      <h3>Grouping</h3>
+      <mat-form-field appearance="outline" class="compact-field">
+        <mat-label>Add group level</mat-label>
+        <mat-select (selectionChange)="addGroup($event.value)" placeholder="Choose field">
+          <mat-option *ngFor="let field of groupFields" [value]="field" [disabled]="options.groupLevels.some(g => g.field === field)">
+            {{ field }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <mat-chip-list *ngIf="options.groupLevels.length; else noGroups" class="chip-row">
+      <mat-chip *ngFor="let group of groupLevelsOrdered">
+        {{ group.field }} ({{ group.order }})
+        <button mat-icon-button matChipRemove (click)="removeGroup(group)" aria-label="Remove group">
+          <mat-icon>close</mat-icon>
+        </button>
+        <button mat-icon-button (click)="moveGroup(group, -1)" [disabled]="group.order === 1" aria-label="Move group up">
+          <mat-icon>arrow_upward</mat-icon>
+        </button>
+        <button mat-icon-button (click)="moveGroup(group, 1)" [disabled]="group.order === options.groupLevels.length" aria-label="Move group down">
+          <mat-icon>arrow_downward</mat-icon>
+        </button>
+      </mat-chip>
+    </mat-chip-list>
+    <ng-template #noGroups>
+      <p class="muted">No grouping applied.</p>
+    </ng-template>
+  </section>
+
+  <section class="stack">
+    <div class="section-header">
+      <h3>Sorting</h3>
+      <mat-form-field appearance="outline" class="compact-field">
+        <mat-label>Add sort level</mat-label>
+        <mat-select (selectionChange)="addSort($event.value)" placeholder="Choose field">
+          <mat-option *ngFor="let field of sortFields" [value]="field" [disabled]="options.sortLevels.some(s => s.field === field)">
+            {{ field }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <mat-chip-list *ngIf="options.sortLevels.length; else noSorts" class="chip-row">
+      <mat-chip *ngFor="let sort of options.sortLevels">
+        {{ sort.field }} · {{ sort.direction }}
+        <button mat-icon-button (click)="updateSortDirection(sort, sort.direction === 'asc' ? 'desc' : 'asc')" aria-label="Toggle sort direction">
+          <mat-icon>swap_vert</mat-icon>
+        </button>
+        <button mat-icon-button matChipRemove (click)="removeSort(sort)" aria-label="Remove sort">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-chip>
+    </mat-chip-list>
+    <ng-template #noSorts>
+      <p class="muted">Using default chronological sort.</p>
+    </ng-template>
+  </section>
+
   <div class="preview-card">
     <div class="preview-header">
       <div>

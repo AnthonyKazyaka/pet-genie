@@ -19,6 +19,41 @@
   flex-wrap: wrap;
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  flex-wrap: wrap;
+}
+
+.compact-field {
+  width: 240px;
+}
+
+.chip-row {
+  display: flex;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+
+  mat-chip, mat-chip-row {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-1;
+  }
+}
+
+.muted {
+  color: var(--on-surface-variant);
+  margin: 0;
+  font-size: 13px;
+}
+
 .preview-card {
   @include card-base;
   padding: $spacing-4;
