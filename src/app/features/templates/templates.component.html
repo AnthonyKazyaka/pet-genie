@@ -1,0 +1,126 @@
+<div class="templates-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Templates</h1>
+      <p class="subtitle">Create appointment templates for quick scheduling</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="createTemplate()">
+      <mat-icon>add</mat-icon>
+      New Template
+    </button>
+  </header>
+
+  <!-- Search and Filter -->
+  <div class="search-filter-bar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        placeholder="Search templates..."
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+      />
+      @if (searchQuery) {
+        <button mat-icon-button matSuffix (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <div class="filter-chips">
+      <mat-chip-listbox [value]="selectedType()" (selectionChange)="onTypeChange($event)">
+        <mat-chip-option value="">All</mat-chip-option>
+        @for (type of serviceTypes; track type.value) {
+          <mat-chip-option [value]="type.value">{{ type.label }}</mat-chip-option>
+        }
+      </mat-chip-listbox>
+    </div>
+  </div>
+
+  @if (filteredTemplates().length === 0) {
+    @if (searchQuery || selectedType()) {
+      <app-empty-state
+        icon="search_off"
+        title="No templates found"
+        description="Try adjusting your search or filter criteria."
+        [compact]="true"
+      ></app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="folder_open"
+        title="No templates yet"
+        description="Create your first template to start scheduling faster."
+        actionLabel="Create Template"
+        actionIcon="add"
+        (click)="createTemplate()"
+      ></app-empty-state>
+    }
+  } @else {
+    <div class="templates-grid">
+      @for (template of filteredTemplates(); track template.id) {
+        <mat-card class="template-card">
+          <mat-card-header>
+            <div class="template-icon">{{ template.icon }}</div>
+            <div class="template-header-text">
+              <mat-card-title>{{ template.name }}</mat-card-title>
+              <mat-card-subtitle>{{ getTypeLabel(template.type) }}</mat-card-subtitle>
+            </div>
+            <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Open template menu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="editTemplate(template)">
+                <mat-icon>edit</mat-icon>
+                <span>Edit</span>
+              </button>
+              <button mat-menu-item (click)="duplicateTemplate(template)">
+                <mat-icon>content_copy</mat-icon>
+                <span>Duplicate</span>
+              </button>
+              <button mat-menu-item (click)="deleteTemplate(template)">
+                <mat-icon>delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            </mat-menu>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="template-row">
+              <span class="label">Duration</span>
+              <span>{{ formatDuration(template.duration) }}</span>
+            </div>
+            <div class="template-row">
+              <span class="label">Travel</span>
+              <span>
+                @if (template.includeTravel) {
+                  Included (+{{ template.travelBuffer }} min)
+                } @else {
+                  Not included
+                }
+              </span>
+            </div>
+            @if (template.defaultStartTime || template.defaultEndTime) {
+              <div class="template-row">
+                <span class="label">Time</span>
+                <span>{{ formatTimeRange(template.defaultStartTime, template.defaultEndTime) }}</span>
+              </div>
+            }
+            @if (template.defaultNotes) {
+              <div class="template-notes">
+                <mat-icon>notes</mat-icon>
+                <span>{{ template.defaultNotes }}</span>
+              </div>
+            }
+          </mat-card-content>
+
+          <mat-card-actions>
+            <button mat-button (click)="useTemplate(template)">
+              <mat-icon>event</mat-icon>
+              Use Template
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

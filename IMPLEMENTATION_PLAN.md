@@ -179,9 +179,9 @@ interface Template {
 ### Phase 1: Break Apart Existing Component Files ⬜ Not Started
 
 #### Templates Component
-- [ ] Extract `templates.component.ts` template to `templates.component.html`
-- [ ] Extract styles to `templates.component.css` (if inline)
-- [ ] Extract `template-dialog.component.ts` template to `template-dialog.component.html`
+- [x] Extract `templates.component.ts` template to `templates.component.html`
+- [x] Extract styles to `templates.component.scss` (if inline)
+- [x] Extract `template-dialog.component.ts` template to `template-dialog.component.html`
 
 #### Calendar Component  
 - [ ] Already has separate `.css` file ✅
@@ -262,7 +262,7 @@ interface Template {
 
 | Feature | Status | Started | Completed | Notes |
 |---------|--------|---------|-----------|-------|
-| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState, Settings, Calendar, Dashboard, Analytics, Templates migrated) |
+| Component Modularization | In Progress | Dec 2, 2025 | - | SCSS refactor underway (SkeletonLoader, AppShell, ConfirmDialog, EmptyState, Settings, Calendar, Dashboard, Analytics, Templates migrated; Templates feature templates extracted to HTML) |
 | Template Enhancements | In Progress | Dec 2, 2025 | - | Added default start/end time fields and time pickers in template dialog |
 | Event Export | ⬜ Not Started | - | - | - |
 | Multi-Event Scheduling | ⬜ Not Started | - | - | - |
