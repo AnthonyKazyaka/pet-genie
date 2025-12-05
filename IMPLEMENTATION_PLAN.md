@@ -149,7 +149,7 @@ interface Template {
 
 **Files to Modify**:
 - [x] `src/app/layout/app-shell/app-shell.component.ts` - Add click-outside handler
-- [ ] Ensure proper touch target sizes (already addressed in previous work)
+- [x] Ensure proper touch target sizes (already addressed in previous work)
 
 ---
 
@@ -184,7 +184,7 @@ interface Template {
 - [x] Extract `template-dialog.component.ts` template to `template-dialog.component.html`
 
 #### Calendar Component  
-- [ ] Already has separate `.css` file ✅
+- [x] Already has separate `.css` file ✅
 - [x] Extract template to `calendar.component.html`
 
 #### Dashboard Component
@@ -192,7 +192,7 @@ interface Template {
 - [x] Create `dashboard.component.scss`
 
 #### Analytics Component
-- [ ] Already has separate `.css` file ✅
+- [x] Already has separate `.css` file ✅
 - [x] Extract template to `analytics.component.html`
 
 #### Settings Component
@@ -251,7 +251,7 @@ interface Template {
 9. ✅ Create MultiEventDialogComponent
 
 ### Sprint 4: Polish & Enhancements
-10. In Progress: Overnight event handling (helpers added, styles pending)
+10. ✅ Overnight event handling (helpers added, styles completed)
 11. ✅ Calendar navigation improvements
 12. ✅ Mobile improvements
 13. ✅ JSON export functionality

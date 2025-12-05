@@ -117,6 +117,7 @@ describe('StorageService', () => {
     it('should handle invalid JSON gracefully', () => {
       localStorage.setItem(PREFIX + 'invalidJson', 'not valid json{');
       expect(service.get('invalidJson')).toBeNull();
+      expect(localStorage.getItem(PREFIX + 'invalidJson')).toBeNull();
     });
   });
 });
