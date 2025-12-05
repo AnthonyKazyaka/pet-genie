@@ -1,3 +1,5 @@
+@use '../../../styles/variables' as *;
+
 .analytics-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -606,4 +608,3 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
     height: 24px;
   }
 }
-@use '../../../styles/variables' as *;

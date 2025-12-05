@@ -137,6 +137,15 @@ export class TemplatesComponent {
     return types[type] || type;
   }
 
+  getTypeLabel(type: TemplateType): string {
+    return this.formatType(type);
+  }
+
+  formatTimeRange(start?: string, end?: string): string {
+    if (start && end) return `${start} - ${end}`;
+    return start || end || '';
+  }
+
   createTemplate(): void {
     const dialogRef = this.dialog.open(TemplateDialogComponent, {
       data: { mode: 'create' } as TemplateDialogData,
@@ -206,5 +215,9 @@ export class TemplatesComponent {
     if (template.isDefault) return;
     this.templates.update((t) => t.filter((item) => item.id !== template.id));
     this.snackBar.open('Template deleted', 'OK', { duration: 3000 });
+  }
+
+  useTemplate(template: Template): void {
+    this.snackBar.open(`Using template: ${template.name}`, 'OK', { duration: 2000 });
   }
 }

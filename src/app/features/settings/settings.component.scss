@@ -1,3 +1,5 @@
+@use '../../../styles/variables' as *;
+
 .settings-container {
   max-width: 900px;
   margin: 0 auto;
@@ -599,4 +601,3 @@ mat-hint a:hover {
     align-items: flex-start;
   }
 }
-@use '../../../styles/variables' as *;

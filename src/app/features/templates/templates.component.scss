@@ -1,3 +1,5 @@
+@use '../../../styles/variables' as *;
+
 .templates-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -204,4 +206,3 @@
     width: 100%;
   }
 }
-@use '../../../styles/variables' as *;

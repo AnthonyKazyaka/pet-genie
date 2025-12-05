@@ -62,13 +62,13 @@ interface CalendarDay {
     MatIconModule,
     MatButtonToggleModule,
     MatTooltipModule,
-    MatMenuModule,
-    MatProgressSpinnerModule,
-    MatDialogModule,
-    MatChipsModule,
-    SkeletonLoaderComponent,
-    EmptyStateComponent,
-    ExportDialogComponent,
+  MatMenuModule,
+  MatProgressSpinnerModule,
+  MatDialogModule,
+  MatChipsModule,
+  SkeletonLoaderComponent,
+  EmptyStateComponent,
+  ExportDialogComponent,
   ],
   styleUrl: './calendar.component.scss',
   templateUrl: './calendar.component.html',
@@ -78,7 +78,6 @@ export class CalendarComponent implements OnInit, OnDestroy {
   private googleCalendarService = inject(GoogleCalendarService);
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
-  private dialog = inject(MatDialog);
   private dialog = inject(MatDialog);
 
   // View state
@@ -328,7 +327,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
     this.navigateByPeriod(this.viewMode, 1);
   }
 
-  navigateByPeriod(period: 'day' | 'week' | 'month', direction: number): void {
+  navigateByPeriod(period: CalendarViewMode, direction: number): void {
     const date = this.currentDate();
     switch (period) {
       case 'month':
@@ -338,6 +337,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
         this.currentDate.set(direction > 0 ? addWeeks(date, 1) : subWeeks(date, 1));
         break;
       case 'day':
+      case 'list':
       default:
         this.currentDate.set(direction > 0 ? addDays(date, 1) : subDays(date, 1));
         break;

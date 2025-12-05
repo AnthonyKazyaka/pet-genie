@@ -1,3 +1,5 @@
+@use '../../../styles/variables' as *;
+
 .calendar-container {
   display: flex;
   flex-direction: column;
@@ -1112,4 +1114,3 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
     width: 100%;
   }
 }
-@use '../../../styles/variables' as *;
