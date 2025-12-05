@@ -29,14 +29,14 @@
       <mat-form-field appearance="outline" class="compact-field">
         <mat-label>Add group level</mat-label>
         <mat-select (selectionChange)="addGroup($event.value)" placeholder="Choose field">
-          <mat-option *ngFor="let field of groupFields" [value]="field" [disabled]="options.groupLevels.some(g => g.field === field)">
+          <mat-option *ngFor="let field of groupFields" [value]="field" [disabled]="isFieldInGroups(field)">
             {{ field }}
           </mat-option>
         </mat-select>
       </mat-form-field>
     </div>
-    <mat-chip-list *ngIf="options.groupLevels.length; else noGroups" class="chip-row">
-      <mat-chip *ngFor="let group of groupLevelsOrdered">
+    <mat-chip-listbox *ngIf="options.groupLevels.length; else noGroups" class="chip-row">
+      <mat-chip-option *ngFor="let group of groupLevelsOrdered">
         {{ group.field }} ({{ group.order }})
         <button mat-icon-button matChipRemove (click)="removeGroup(group)" aria-label="Remove group">
           <mat-icon>close</mat-icon>
@@ -47,8 +47,8 @@
         <button mat-icon-button (click)="moveGroup(group, 1)" [disabled]="group.order === options.groupLevels.length" aria-label="Move group down">
           <mat-icon>arrow_downward</mat-icon>
         </button>
-      </mat-chip>
-    </mat-chip-list>
+      </mat-chip-option>
+    </mat-chip-listbox>
     <ng-template #noGroups>
       <p class="muted">No grouping applied.</p>
     </ng-template>
@@ -60,14 +60,14 @@
       <mat-form-field appearance="outline" class="compact-field">
         <mat-label>Add sort level</mat-label>
         <mat-select (selectionChange)="addSort($event.value)" placeholder="Choose field">
-          <mat-option *ngFor="let field of sortFields" [value]="field" [disabled]="options.sortLevels.some(s => s.field === field)">
+          <mat-option *ngFor="let field of sortFields" [value]="field" [disabled]="isFieldInSorts(field)">
             {{ field }}
           </mat-option>
         </mat-select>
       </mat-form-field>
     </div>
-    <mat-chip-list *ngIf="options.sortLevels.length; else noSorts" class="chip-row">
-      <mat-chip *ngFor="let sort of options.sortLevels">
+    <mat-chip-listbox *ngIf="options.sortLevels.length; else noSorts" class="chip-row">
+      <mat-chip-option *ngFor="let sort of options.sortLevels">
         {{ sort.field }} · {{ sort.direction }}
         <button mat-icon-button (click)="updateSortDirection(sort, sort.direction === 'asc' ? 'desc' : 'asc')" aria-label="Toggle sort direction">
           <mat-icon>swap_vert</mat-icon>
@@ -75,8 +75,8 @@
         <button mat-icon-button matChipRemove (click)="removeSort(sort)" aria-label="Remove sort">
           <mat-icon>close</mat-icon>
         </button>
-      </mat-chip>
-    </mat-chip-list>
+      </mat-chip-option>
+    </mat-chip-listbox>
     <ng-template #noSorts>
       <p class="muted">Using default chronological sort.</p>
     </ng-template>

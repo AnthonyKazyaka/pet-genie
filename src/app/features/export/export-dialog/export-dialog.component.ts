@@ -152,4 +152,12 @@ export class ExportDialogComponent implements OnInit {
   close(): void {
     this.dialogRef.close();
   }
+
+  isFieldInGroups(field: GroupField): boolean {
+    return this.options.groupLevels.some((g) => g.field === field);
+  }
+
+  isFieldInSorts(field: SortField): boolean {
+    return this.options.sortLevels.some((s) => s.field === field);
+  }
 }
