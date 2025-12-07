@@ -36,7 +36,6 @@
   gap: 16px;
 }
 
-/* View Toggle Buttons */
 mat-button-toggle-group {
   border: 1px solid var(--outline-variant);
   border-radius: 8px;
@@ -112,7 +111,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   color: var(--on-surface-variant);
 }
 
-/* Month View */
 .month-view {
   flex: 1;
   display: flex;
@@ -285,7 +283,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   padding: 2px 6px;
 }
 
-/* Week View */
 .week-view {
   flex: 1;
   display: flex;
@@ -426,7 +423,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   font-size: 12px;
 }
 
-/* Day View */
 .day-view {
   flex: 1;
   min-height: 0;
@@ -515,7 +511,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   margin-bottom: 16px;
 }
 
-/* Spinning animation */
 .spinning {
   animation: spin 1s linear infinite;
 }
@@ -525,7 +520,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   to { transform: rotate(360deg); }
 }
 
-/* Calendar Layout with sidebar */
 .calendar-layout {
   display: flex;
   gap: 24px;
@@ -543,7 +537,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   overflow: hidden;
 }
 
-/* Mini Calendar Sidebar */
 .mini-calendar-sidebar {
   width: 240px;
   flex-shrink: 0;
@@ -629,7 +622,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   border-radius: 50%;
 }
 
-/* Workload Summary */
 .workload-summary {
   background: var(--surface-container);
   border-radius: 12px;
@@ -667,7 +659,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
 .legend-color.high { background: var(--workload-high); }
 .legend-color.burnout { background: var(--workload-burnout); }
 
-/* Week Number Column */
 .week-number-header {
   padding: 12px 8px;
   text-align: center;
@@ -692,7 +683,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   grid-template-columns: 40px repeat(7, 1fr);
 }
 
-/* Selected day styling */
 .calendar-day.selected {
   background: var(--primary-container);
 }
@@ -702,7 +692,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   z-index: 1;
 }
 
-/* Workload bar at bottom of day cell */
 .workload-bar {
   position: absolute;
   bottom: 0;
@@ -721,7 +710,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   position: relative;
 }
 
-/* Event chip improvements */
 .event-chip .event-time {
   font-size: 9px;
   margin-right: 4px;
@@ -733,7 +721,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   color: var(--on-secondary-container);
 }
 
-/* Week View Time Grid */
 .week-time-grid {
   display: flex;
   flex: 1;
@@ -775,7 +762,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   justify-content: center;
 }
 
-/* Day View Time Grid */
 .day-time-grid {
   display: flex;
   flex-direction: column;
@@ -804,7 +790,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   gap: 4px;
 }
 
-/* Workload chips */
 .workload-chip {
   font-size: 12px;
 }
@@ -814,7 +799,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
 .workload-chip.workload-high { background: var(--workload-high) !important; color: var(--on-surface) !important; }
 .workload-chip.workload-burnout { background: var(--error-container) !important; color: var(--on-error-container) !important; }
 
-/* Shared Sidebar Styles */
 .event-details-sidebar,
 .day-details-sidebar {
   position: fixed;
@@ -993,7 +977,6 @@ mat-button-toggle:hover:not(.mat-button-toggle-checked) {
   }
 }
 
-/* Day Details Sidebar - Specific Styles */
 .empty-day {
   display: flex;
   flex-direction: column;
