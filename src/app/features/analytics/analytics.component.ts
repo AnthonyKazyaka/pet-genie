@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +8,6 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import {
   DataService,
@@ -24,7 +23,7 @@ import {
   getWorkloadLevel,
 } from '../../models';
 import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
-import { ExportDialogComponent } from '../export/export-dialog/export-dialog.component';
+import { ExportContextService } from '../export/export-context.service';
 import { firstValueFrom } from 'rxjs';
 import {
   format,
@@ -82,12 +81,10 @@ interface DayOfWeekStats {
     MatIconModule,
     MatButtonToggleModule,
     MatProgressSpinnerModule,
-  MatTooltipModule,
-  MatDialogModule,
-  MatSnackBarModule,
-  SkeletonLoaderComponent,
-  EmptyStateComponent,
-  ExportDialogComponent,
+    MatTooltipModule,
+    MatSnackBarModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   styleUrl: './analytics.component.scss',
   templateUrl: './analytics.component.html',
@@ -98,7 +95,8 @@ export class AnalyticsComponent implements OnInit {
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
   private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private exportContext = inject(ExportContextService);
 
   timeRange: 'week' | 'month' | '3months' = 'month';
   isLoading = signal(false);
@@ -276,19 +274,18 @@ export class AnalyticsComponent implements OnInit {
 
   openExportDialog(): void {
     const dateRange = this.getDateRange();
-    this.dialog.open(ExportDialogComponent, {
-      width: '900px',
-      data: {
-        events: this.events(),
-        defaultOptions: {
-          startDate: dateRange.start,
-          endDate: dateRange.end,
-          includeTime: true,
-          includeLocation: true,
-          workEventsOnly: true,
-        },
+    this.exportContext.setContext({
+      events: this.events(),
+      defaultOptions: {
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        includeTime: true,
+        includeLocation: true,
+        workEventsOnly: true,
       },
+      source: 'analytics',
     });
+    this.router.navigate(['/export']);
   }
 
   async loadEvents(): Promise<void> {

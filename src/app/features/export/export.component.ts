@@ -1,7 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Router, RouterLink } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -10,9 +11,21 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { CalendarEvent } from '../../../models';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import {
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfDay,
+  endOfDay,
+  addDays,
+} from 'date-fns';
+import { firstValueFrom } from 'rxjs';
+import { CalendarEvent, DateRange } from '../../models';
 import {
   ExportOptions,
   ExportGroup,
@@ -22,21 +35,21 @@ import {
   SortLevel,
   SortField,
   SortDirection,
-} from '../../../models/export.model';
-import { EventExporterService } from '../../../core/services/event-exporter.service';
+} from '../../models/export.model';
+import { EventExporterService } from '../../core/services/event-exporter.service';
+import { DataService, EventProcessorService, GoogleCalendarService } from '../../core/services';
+import { ExportContextService } from './export-context.service';
 
-export interface ExportDialogData {
-  events: CalendarEvent[];
-  defaultOptions?: Partial<ExportOptions>;
-}
+type RangePreset = 'week' | 'next7' | 'month';
 
 @Component({
-  selector: 'app-export-dialog',
+  selector: 'app-export',
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     FormsModule,
-    MatDialogModule,
+    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatDatepickerModule,
@@ -46,22 +59,31 @@ export interface ExportDialogData {
     MatCheckboxModule,
     MatChipsModule,
     MatSnackBarModule,
+    MatButtonToggleModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
   ],
-  templateUrl: './export-dialog.component.html',
-  styleUrl: './export-dialog.component.scss',
+  templateUrl: './export.component.html',
+  styleUrl: './export.component.scss',
 })
-export class ExportDialogComponent implements OnInit {
-  private dialogRef = inject(MatDialogRef<ExportDialogComponent>);
+export class ExportComponent implements OnInit {
   private exporter = inject(EventExporterService);
   private snackBar = inject(MatSnackBar);
-  data = inject<ExportDialogData>(MAT_DIALOG_DATA);
+  private router = inject(Router);
+  private context = inject(ExportContextService);
+  private dataService = inject(DataService);
+  private googleCalendarService = inject(GoogleCalendarService);
+  private eventProcessor = inject(EventProcessorService);
 
   events: CalendarEvent[] = [];
+  contextSource: 'calendar' | 'analytics' | 'manual' | null = null;
+  isLoadingEvents = false;
+  autoReloadFromCalendar = false;
+  rangePreset: RangePreset = 'month';
 
   options: ExportOptions = {
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: startOfMonth(new Date()),
+    endDate: endOfMonth(new Date()),
     includeTime: true,
     includeLocation: false,
     groupLevels: [],
@@ -83,12 +105,91 @@ export class ExportDialogComponent implements OnInit {
     return [...this.options.groupLevels].sort((a, b) => a.order - b.order);
   }
 
-  ngOnInit(): void {
-    this.events = this.data?.events || [];
-    if (this.data?.defaultOptions) {
-      this.options = { ...this.options, ...this.data.defaultOptions };
+  async ngOnInit(): Promise<void> {
+    this.applyContext();
+    if (!this.events.length) {
+      this.autoReloadFromCalendar = true;
+      await this.loadEventsForRange({ start: this.options.startDate, end: this.options.endDate });
+    } else {
+      this.generatePreview();
     }
-    this.generatePreview();
+  }
+
+  applyContext(): void {
+    const context = this.context.getContext();
+    if (!context) return;
+
+    if (context.defaultOptions) {
+      this.options = { ...this.options, ...context.defaultOptions };
+    }
+
+    if (context.events?.length) {
+      this.events = context.events;
+    }
+
+    if (context.source) {
+      this.contextSource = context.source;
+    }
+
+    // Align preset to context dates when possible
+    const now = new Date();
+    const thisWeek = { start: startOfWeek(now, { weekStartsOn: 0 }), end: endOfWeek(now, { weekStartsOn: 0 }) };
+    if (
+      context.defaultOptions?.startDate &&
+      context.defaultOptions?.endDate &&
+      this.datesMatchRange(context.defaultOptions.startDate, context.defaultOptions.endDate, thisWeek)
+    ) {
+      this.rangePreset = 'week';
+    }
+  }
+
+  async loadEventsForRange(range: DateRange): Promise<void> {
+    try {
+      this.isLoadingEvents = true;
+
+      const settings = this.dataService.settings();
+      if (!settings.googleClientId) {
+        this.snackBar.open('Connect Google Calendar to pull events directly.', 'Dismiss', { duration: 3500 });
+        this.generatePreview();
+        return;
+      }
+
+      if (!this.googleCalendarService.isInitialized()) {
+        await this.googleCalendarService.initialize(settings.googleClientId);
+      }
+
+      const rawEvents = await firstValueFrom(
+        this.googleCalendarService.fetchEventsFromCalendars(settings.selectedCalendars, range)
+      );
+      this.events = this.eventProcessor.processEvents(rawEvents ?? []);
+      this.generatePreview();
+    } catch (error) {
+      console.error('Failed to load events for export', error);
+      this.snackBar.open('Could not load events for export. Try again or adjust your connection.', 'Dismiss', {
+        duration: 4000,
+      });
+    } finally {
+      this.isLoadingEvents = false;
+    }
+  }
+
+  setRangePreset(preset: RangePreset): void {
+    this.rangePreset = preset;
+    const range = this.getRangeForPreset(preset);
+    this.options = { ...this.options, startDate: range.start, endDate: range.end };
+    if (this.autoReloadFromCalendar) {
+      this.loadEventsForRange(range);
+    } else {
+      this.generatePreview();
+    }
+  }
+
+  onManualDateChange(): void {
+    if (this.autoReloadFromCalendar) {
+      this.loadEventsForRange({ start: this.options.startDate, end: this.options.endDate });
+    } else {
+      this.generatePreview();
+    }
   }
 
   generatePreview(): void {
@@ -203,15 +304,44 @@ export class ExportDialogComponent implements OnInit {
     return `${minutes} min`;
   }
 
-  close(): void {
-    this.dialogRef.close();
-  }
-
   isFieldInGroups(field: GroupField): boolean {
     return this.options.groupLevels.some((g) => g.field === field);
   }
 
   isFieldInSorts(field: SortField): boolean {
     return this.options.sortLevels.some((s) => s.field === field);
+  }
+
+  navigateBack(): void {
+    this.router.navigate(['/calendar']);
+  }
+
+  private getRangeForPreset(preset: RangePreset): DateRange {
+    const today = new Date();
+    switch (preset) {
+      case 'week':
+        return {
+          start: startOfWeek(today, { weekStartsOn: 0 }),
+          end: endOfWeek(today, { weekStartsOn: 0 }),
+        };
+      case 'next7':
+        return {
+          start: startOfDay(today),
+          end: endOfDay(addDays(today, 6)),
+        };
+      case 'month':
+      default:
+        return {
+          start: startOfMonth(today),
+          end: endOfMonth(today),
+        };
+    }
+  }
+
+  private datesMatchRange(start: Date, end: Date, range: DateRange): boolean {
+    return (
+      startOfDay(start).getTime() === startOfDay(range.start).getTime() &&
+      endOfDay(end).getTime() === endOfDay(range.end).getTime()
+    );
   }
 }

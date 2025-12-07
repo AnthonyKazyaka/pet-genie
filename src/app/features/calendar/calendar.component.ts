@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +8,6 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
 import {
@@ -36,7 +35,7 @@ import {
 import { DataService, GoogleCalendarService, WorkloadService, EventProcessorService } from '../../core/services';
 import { CalendarEvent, CalendarViewMode, WorkloadLevel, DateRange, getWorkloadLevel } from '../../models';
 import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
-import { ExportDialogComponent } from '../export/export-dialog/export-dialog.component';
+import { ExportContextService } from '../export/export-context.service';
 import { firstValueFrom } from 'rxjs';
 
 interface CalendarDay {
@@ -62,13 +61,11 @@ interface CalendarDay {
     MatIconModule,
     MatButtonToggleModule,
     MatTooltipModule,
-  MatMenuModule,
-  MatProgressSpinnerModule,
-  MatDialogModule,
-  MatChipsModule,
-  SkeletonLoaderComponent,
-  EmptyStateComponent,
-  ExportDialogComponent,
+    MatMenuModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   styleUrl: './calendar.component.scss',
   templateUrl: './calendar.component.html',
@@ -78,7 +75,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
   private googleCalendarService = inject(GoogleCalendarService);
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
-  private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private exportContext = inject(ExportContextService);
 
   // View state
   viewMode: CalendarViewMode = 'month';
@@ -347,19 +345,18 @@ export class CalendarComponent implements OnInit, OnDestroy {
 
   openExportDialog(): void {
     const { start, end } = this.getRangeForView();
-    this.dialog.open(ExportDialogComponent, {
-      width: '900px',
-      data: {
-        events: this.events(),
-        defaultOptions: {
-          startDate: start,
-          endDate: end,
-          workEventsOnly: true,
-          includeTime: true,
-          includeLocation: true,
-        },
+    this.exportContext.setContext({
+      events: this.events(),
+      defaultOptions: {
+        startDate: start,
+        endDate: end,
+        workEventsOnly: true,
+        includeTime: true,
+        includeLocation: true,
       },
+      source: 'calendar',
     });
+    this.router.navigate(['/export']);
   }
 
   private getRangeForView(): { start: Date; end: Date } {

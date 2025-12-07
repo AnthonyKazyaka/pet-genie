@@ -218,6 +218,7 @@ export class AppShellComponent {
     { label: 'Calendar', route: '/calendar', icon: 'calendar_month' },
     { label: 'Templates', route: '/templates', icon: 'description' },
     { label: 'Analytics', route: '/analytics', icon: 'analytics' },
+    { label: 'Export', route: '/export', icon: 'file_upload' },
     { label: 'Settings', route: '/settings', icon: 'settings' },
   ];
 
@@ -226,6 +227,7 @@ export class AppShellComponent {
     { label: 'Calendar', route: '/calendar', icon: 'calendar_month' },
     { label: 'Templates', route: '/templates', icon: 'description' },
     { label: 'Analytics', route: '/analytics', icon: 'analytics' },
+    { label: 'Export', route: '/export', icon: 'file_upload' },
   ];
 
   breadcrumbs = computed<Breadcrumb[]>(() => {
@@ -237,6 +239,7 @@ export class AppShellComponent {
       '/calendar': 'Calendar',
       '/templates': 'Templates',
       '/analytics': 'Analytics',
+      '/export': 'Export',
       '/settings': 'Settings',
     };
 

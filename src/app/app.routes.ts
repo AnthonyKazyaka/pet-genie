@@ -35,6 +35,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'export',
+    loadComponent: () =>
+      import('./features/export/export.component').then(
+        (m) => m.ExportComponent
+      ),
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./features/settings/settings.component').then(

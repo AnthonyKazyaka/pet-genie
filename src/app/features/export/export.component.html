@@ -1,0 +1,286 @@
+<section class="export-page">
+  <header class="page-hero">
+    <div class="hero-text">
+      <p class="eyebrow">Export Center</p>
+      <div class="title-row">
+        <h1>Export events</h1>
+        <span class="pill" *ngIf="contextSource">From {{ contextSource }}</span>
+      </div>
+      <p class="subtitle">Use the full page to curate a clean text handoff or CSV download.</p>
+      <div class="hero-pills">
+        <span class="pill muted">Text + CSV</span>
+        <span class="pill muted">Grouping</span>
+        <span class="pill muted">{{ count }} ready</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button mat-stroked-button routerLink="/calendar">
+        <mat-icon>calendar_today</mat-icon>
+        Calendar
+      </button>
+      <button mat-stroked-button routerLink="/analytics">
+        <mat-icon>insights</mat-icon>
+        Analytics
+      </button>
+      <button mat-flat-button color="primary" (click)="generatePreview()" [disabled]="isLoadingEvents">
+        <mat-icon>refresh</mat-icon>
+        Refresh preview
+      </button>
+    </div>
+  </header>
+
+  <div class="content-grid">
+    <section class="controls-column">
+      <mat-card class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Date range</p>
+            <h3>Choose your window</h3>
+          </div>
+          <mat-button-toggle-group [value]="rangePreset" (change)="setRangePreset($event.value)">
+            <mat-button-toggle value="week">This week</mat-button-toggle>
+            <mat-button-toggle value="next7">Next 7 days</mat-button-toggle>
+            <mat-button-toggle value="month">This month</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Start date</mat-label>
+            <input matInput [matDatepicker]="startPicker" [(ngModel)]="options.startDate" (dateChange)="onManualDateChange()" />
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>End date</mat-label>
+            <input matInput [matDatepicker]="endPicker" [(ngModel)]="options.endDate" (dateChange)="onManualDateChange()" />
+            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <div class="option-grid">
+          <mat-checkbox [(ngModel)]="options.includeTime" (change)="generatePreview()">Include time</mat-checkbox>
+          <mat-checkbox [(ngModel)]="options.includeLocation" (change)="generatePreview()">Include location</mat-checkbox>
+          <mat-checkbox [(ngModel)]="options.workEventsOnly" (change)="generatePreview()">Work events only</mat-checkbox>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Quick search</mat-label>
+          <input
+            matInput
+            placeholder="Client, pet, service, location"
+            [ngModel]="options.searchTerm"
+            (ngModelChange)="updateSearch($event)"
+          />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </mat-card>
+
+      <mat-card class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Grouping</p>
+            <h3>Organize the export</h3>
+          </div>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-label>Add group</mat-label>
+            <mat-select (selectionChange)="addGroup($event.value)" placeholder="Choose field">
+              <mat-option *ngFor="let field of groupFields" [value]="field" [disabled]="isFieldInGroups(field)">
+                {{ field }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="options.groupLevels.length; else noGroups" class="chip-row">
+          <mat-chip-option *ngFor="let group of groupLevelsOrdered" selectable="false">
+            <span class="chip-label">{{ group.field }}</span>
+            <span class="chip-order">#{{ group.order }}</span>
+            <button mat-icon-button (click)="moveGroup(group, -1)" [disabled]="group.order === 1" aria-label="Move group up">
+              <mat-icon>arrow_upward</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="moveGroup(group, 1)"
+              [disabled]="group.order === options.groupLevels.length"
+              aria-label="Move group down"
+            >
+              <mat-icon>arrow_downward</mat-icon>
+            </button>
+            <button mat-icon-button matChipRemove (click)="removeGroup(group)" aria-label="Remove group">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-chip-option>
+        </div>
+        <ng-template #noGroups>
+          <p class="muted">No grouping applied.</p>
+        </ng-template>
+      </mat-card>
+
+      <mat-card class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Sorting</p>
+            <h3>Primary sort</h3>
+          </div>
+          <mat-form-field appearance="outline" class="compact-field">
+            <mat-label>Add sort</mat-label>
+            <mat-select (selectionChange)="addSort($event.value)" placeholder="Choose field">
+              <mat-option *ngFor="let field of sortFields" [value]="field" [disabled]="isFieldInSorts(field)">
+                {{ field }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="options.sortLevels.length; else noSorts" class="chip-row">
+          <mat-chip-option *ngFor="let sort of options.sortLevels" selectable="false">
+            <span class="chip-label">{{ sort.field }}</span>
+            <button
+              mat-icon-button
+              (click)="updateSortDirection(sort, sort.direction === 'asc' ? 'desc' : 'asc')"
+              aria-label="Toggle sort direction"
+            >
+              <mat-icon>swap_vert</mat-icon>
+            </button>
+            <button mat-icon-button matChipRemove (click)="removeSort(sort)" aria-label="Remove sort">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-chip-option>
+        </div>
+        <ng-template #noSorts>
+          <p class="muted">Using default chronological sort.</p>
+        </ng-template>
+      </mat-card>
+    </section>
+
+    <section class="preview-column">
+      <mat-card class="summary-card">
+        <div class="summary-header">
+          <div>
+            <p class="eyebrow">Preview</p>
+            <h2>{{ count }} {{ count === 1 ? 'event' : 'events' }} ready</h2>
+            <p class="muted">Copy a formatted list or export a CSV right away.</p>
+          </div>
+          <div class="summary-actions">
+            <button mat-stroked-button (click)="copyToClipboard()" [disabled]="!preview">
+              <mat-icon>content_copy</mat-icon>
+              Copy list
+            </button>
+            <button mat-stroked-button (click)="copyCsv()" [disabled]="!csvContent">
+              <mat-icon>table_view</mat-icon>
+              Copy CSV
+            </button>
+            <button mat-flat-button color="primary" (click)="downloadCsv()" [disabled]="!csvContent">
+              <mat-icon>download</mat-icon>
+              Download CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="summary-footer">
+          <span class="pill muted">
+            <mat-icon>calendar_month</mat-icon>
+            {{ options.startDate | date: 'MMM d, y' }} – {{ options.endDate | date: 'MMM d, y' }}
+          </span>
+          <span class="pill muted" *ngIf="options.searchTerm">Search: "{{ options.searchTerm }}"</span>
+          <span class="pill muted" *ngIf="options.workEventsOnly">Work events only</span>
+        </div>
+
+        <div class="group-summary" *ngIf="groups.length">
+          <mat-chip *ngFor="let group of groups" [matTooltip]="group.totalDurationMinutes + ' minutes'">
+            <span class="chip-label">{{ group.label }}</span>
+            <span class="chip-count">{{ group.count }}</span>
+          </mat-chip>
+        </div>
+
+        <div class="loading-banner" *ngIf="isLoadingEvents">
+          <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading events...</span>
+        </div>
+      </mat-card>
+
+      <mat-card class="panel preview-pane">
+        <div class="pane-header">
+          <div>
+            <p class="eyebrow">Formatted list</p>
+            <h3>Copy-friendly text</h3>
+          </div>
+          <button mat-icon-button matTooltip="Download text" (click)="download()" [disabled]="!preview">
+            <mat-icon>download</mat-icon>
+          </button>
+        </div>
+        <div class="preview-body" *ngIf="count > 0; else noPreview">
+          <pre class="preview-content">{{ preview }}</pre>
+        </div>
+      </mat-card>
+
+      <mat-card class="panel preview-pane">
+        <div class="pane-header">
+          <div>
+            <p class="eyebrow">CSV / Table</p>
+            <h3>Sortable rows</h3>
+          </div>
+        </div>
+        <div class="preview-body" *ngIf="count > 0; else noPreview">
+          <div class="table-scroll">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th (click)="applySortFromTable('date')">
+                    Date
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('date') as dir">
+                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    </mat-icon>
+                  </th>
+                  <th *ngIf="options.includeTime">Time</th>
+                  <th (click)="applySortFromTable('client')">
+                    Client
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('client') as dir">
+                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    </mat-icon>
+                  </th>
+                  <th (click)="applySortFromTable('service')">
+                    Service
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('service') as dir">
+                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    </mat-icon>
+                  </th>
+                  <th>Duration</th>
+                  <th *ngIf="options.includeLocation">Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows">
+                  <td>
+                    <div class="cell-primary">{{ row.dateLabel }}</div>
+                    <div class="cell-subtle" *ngIf="row.groupPath.length">
+                      {{ row.groupPath.join(' / ') }}
+                    </div>
+                  </td>
+                  <td *ngIf="options.includeTime">{{ row.timeLabel }}</td>
+                  <td>{{ row.client }}</td>
+                  <td>{{ row.service }}</td>
+                  <td>{{ formatDuration(row.durationMinutes) }}</td>
+                  <td *ngIf="options.includeLocation">{{ row.location || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </mat-card>
+    </section>
+  </div>
+</section>
+
+<ng-template #noPreview>
+  <div class="empty-state">
+    <mat-icon>search_off</mat-icon>
+    <div>
+      <h4>No events match this filter</h4>
+      <p>Try expanding the date range or clearing filters.</p>
+    </div>
+  </div>
+</ng-template>
