@@ -35,10 +35,12 @@ import {
   SortLevel,
   SortField,
   SortDirection,
+  ExportTemplate,
 } from '../../models/export.model';
 import { EventExporterService } from '../../core/services/event-exporter.service';
 import { DataService, EventProcessorService, GoogleCalendarService } from '../../core/services';
 import { ExportContextService } from './export-context.service';
+import { ExportTemplateService } from './export-template.service';
 
 type RangePreset = 'week' | 'next7' | 'month';
 
@@ -74,6 +76,7 @@ export class ExportComponent implements OnInit {
   private dataService = inject(DataService);
   private googleCalendarService = inject(GoogleCalendarService);
   private eventProcessor = inject(EventProcessorService);
+  private templateService = inject(ExportTemplateService);
 
   events: CalendarEvent[] = [];
   contextSource: 'calendar' | 'analytics' | 'manual' | null = null;
@@ -91,6 +94,11 @@ export class ExportComponent implements OnInit {
     workEventsOnly: false,
     searchTerm: '',
   };
+  templates: ExportTemplate[] = [];
+  selectedTemplateId: string | null = null;
+  appliedTemplateId: string | null = null;
+  templateName = '';
+  includeDateRange = true;
 
   preview = '';
   csvContent = '';
@@ -106,10 +114,16 @@ export class ExportComponent implements OnInit {
     return [...this.options.groupLevels].sort((a, b) => a.order - b.order);
   }
 
+  get selectedTemplate(): ExportTemplate | undefined {
+    return this.templates.find((tpl) => tpl.id === this.selectedTemplateId);
+  }
+
   async ngOnInit(): Promise<void> {
+    this.refreshTemplates();
     this.applyContext();
-    if (!this.events.length) {
-      this.autoReloadFromCalendar = true;
+    this.autoReloadFromCalendar = !this.events.length;
+    this.applyPreferredTemplate();
+    if (this.autoReloadFromCalendar) {
       await this.loadEventsForRange({ start: this.options.startDate, end: this.options.endDate });
     } else {
       this.generatePreview();
@@ -301,6 +315,70 @@ export class ExportComponent implements OnInit {
     return this.options.sortLevels.some((s) => s.field === field);
   }
 
+  onTemplateSelectionChange(templateId: string | null): void {
+    this.selectedTemplateId = templateId;
+    const template = this.templates.find((tpl) => tpl.id === templateId);
+    if (template) {
+      this.templateName = template.name;
+      this.includeDateRange = template.includeDateRange;
+    } else {
+      this.templateName = '';
+      this.includeDateRange = true;
+    }
+  }
+
+  applySelectedTemplate(): void {
+    if (!this.selectedTemplateId) return;
+    const template = this.templates.find((tpl) => tpl.id === this.selectedTemplateId);
+    if (!template) return;
+    this.applyTemplate(template, true);
+  }
+
+  saveTemplate(updateExisting: boolean = false): void {
+    const name = this.templateName?.trim();
+    if (!name) {
+      this.snackBar.open('Name your preset before saving.', 'Dismiss', { duration: 2500 });
+      return;
+    }
+
+    const payloadId = updateExisting ? this.selectedTemplateId || undefined : undefined;
+    const saved = this.templateService.save({
+      id: payloadId,
+      name,
+      includeDateRange: this.includeDateRange,
+      options: this.cloneOptions(this.options),
+    });
+
+    this.appliedTemplateId = saved.id;
+    this.selectedTemplateId = saved.id;
+    this.templateService.markLastUsed(saved.id);
+    this.refreshTemplates();
+    this.snackBar.open(`Preset "${saved.name}" saved`, 'OK', { duration: 2000 });
+  }
+
+  deleteTemplate(): void {
+    if (!this.selectedTemplateId) return;
+    const template = this.templates.find((tpl) => tpl.id === this.selectedTemplateId);
+    if (!template) return;
+    const confirmed = confirm(`Delete preset "${template.name}"?`);
+    if (!confirmed) return;
+
+    this.templateService.delete(template.id);
+    this.refreshTemplates();
+    if (this.selectedTemplateId === template.id) {
+      this.selectedTemplateId = null;
+      this.appliedTemplateId = this.appliedTemplateId === template.id ? null : this.appliedTemplateId;
+    }
+    this.templateName = '';
+  }
+
+  toggleDefaultTemplate(): void {
+    if (!this.selectedTemplateId) return;
+    const currentlyDefault = this.templates.find((tpl) => tpl.id === this.selectedTemplateId)?.isDefault;
+    this.templateService.setDefault(currentlyDefault ? null : this.selectedTemplateId);
+    this.refreshTemplates();
+  }
+
   setExportFormat(format: 'text' | 'csv'): void {
     this.exportFormat = format;
   }
@@ -336,5 +414,76 @@ export class ExportComponent implements OnInit {
       startOfDay(start).getTime() === startOfDay(range.start).getTime() &&
       endOfDay(end).getTime() === endOfDay(range.end).getTime()
     );
+  }
+
+  private refreshTemplates(): void {
+    this.templates = this.templateService.list();
+    const defaultTemplate = this.templates.find((tpl) => tpl.isDefault);
+    if (defaultTemplate && !this.selectedTemplateId) {
+      this.selectedTemplateId = defaultTemplate.id;
+      this.templateName = defaultTemplate.name;
+      this.includeDateRange = defaultTemplate.includeDateRange;
+    }
+  }
+
+  private applyPreferredTemplate(): void {
+    const preferred = this.templateService.getPreferred();
+    if (!preferred) return;
+    this.selectedTemplateId = preferred.id;
+    this.templateName = preferred.name;
+    this.includeDateRange = preferred.includeDateRange;
+    this.applyTemplate(preferred, false, false);
+  }
+
+  private applyTemplate(template: ExportTemplate, notify: boolean, triggerLoad: boolean = true): void {
+    this.options = this.mergeOptionsFromTemplate(template);
+    this.appliedTemplateId = template.id;
+    this.templateService.markLastUsed(template.id);
+    this.syncRangePresetFromOptions();
+
+    const shouldLoad = triggerLoad && (this.autoReloadFromCalendar || template.includeDateRange);
+    if (shouldLoad) {
+      this.autoReloadFromCalendar = true;
+      this.loadEventsForRange({ start: this.options.startDate, end: this.options.endDate });
+    } else {
+      this.generatePreview();
+    }
+
+    if (notify) {
+      this.snackBar.open(`Applied "${template.name}"`, 'OK', { duration: 2000 });
+    }
+  }
+
+  private mergeOptionsFromTemplate(template: ExportTemplate): ExportOptions {
+    const baseDates = template.includeDateRange
+      ? { startDate: new Date(template.options.startDate), endDate: new Date(template.options.endDate) }
+      : { startDate: this.options.startDate, endDate: this.options.endDate };
+
+    return {
+      ...this.options,
+      ...template.options,
+      ...baseDates,
+      groupLevels: template.options.groupLevels.map((group) => ({ ...group })),
+      sortLevels: template.options.sortLevels.map((sort) => ({ ...sort })),
+    };
+  }
+
+  private cloneOptions(options: ExportOptions): ExportOptions {
+    return {
+      ...options,
+      startDate: new Date(options.startDate),
+      endDate: new Date(options.endDate),
+      groupLevels: options.groupLevels.map((group) => ({ ...group })),
+      sortLevels: options.sortLevels.map((sort) => ({ ...sort })),
+    };
+  }
+
+  private syncRangePresetFromOptions(): void {
+    (['week', 'next7', 'month'] as RangePreset[]).forEach((preset) => {
+      const range = this.getRangeForPreset(preset);
+      if (this.datesMatchRange(this.options.startDate, this.options.endDate, range)) {
+        this.rangePreset = preset;
+      }
+    });
   }
 }

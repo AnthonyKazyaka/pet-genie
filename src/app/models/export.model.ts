@@ -51,3 +51,14 @@ export interface ExportGroup {
   count: number;
   totalDurationMinutes: number;
 }
+
+export interface ExportTemplate {
+  id: string;
+  name: string;
+  includeDateRange: boolean;
+  options: ExportOptions;
+  createdAt: Date;
+  updatedAt: Date;
+  lastUsedAt?: Date;
+  isDefault?: boolean;
+}

@@ -34,6 +34,69 @@
       <mat-card class="panel">
         <div class="panel-header">
           <div>
+            <p class="eyebrow">Presets</p>
+            <h3>Save and reuse</h3>
+          </div>
+          <button mat-stroked-button (click)="applySelectedTemplate()" [disabled]="!selectedTemplateId">
+            <mat-icon>play_circle</mat-icon>
+            Apply
+          </button>
+        </div>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Saved presets</mat-label>
+            <mat-select [value]="selectedTemplateId" (selectionChange)="onTemplateSelectionChange($event.value)">
+              <mat-option [value]="null">None</mat-option>
+              <mat-option *ngFor="let template of templates" [value]="template.id">
+                {{ template.name }} <span *ngIf="template.isDefault">• Default</span>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Preset name</mat-label>
+            <input matInput placeholder="e.g., Weekly CSV" [(ngModel)]="templateName" />
+          </mat-form-field>
+        </div>
+
+        <div class="option-grid">
+          <mat-checkbox [(ngModel)]="includeDateRange">Save date range</mat-checkbox>
+          <button
+            mat-stroked-button
+            color="primary"
+            class="inline-button"
+            (click)="toggleDefaultTemplate()"
+            [disabled]="!selectedTemplateId"
+          >
+            <mat-icon>{{ selectedTemplate?.isDefault ? 'star' : 'star_border' }}</mat-icon>
+            {{ selectedTemplate?.isDefault ? 'Unset default' : 'Set default' }}
+          </button>
+        </div>
+
+        <div class="template-actions">
+          <button mat-flat-button color="primary" (click)="saveTemplate(false)">
+            <mat-icon>add</mat-icon>
+            Save new
+          </button>
+          <button mat-stroked-button color="primary" (click)="saveTemplate(true)" [disabled]="!selectedTemplateId">
+            <mat-icon>save</mat-icon>
+            Update selected
+          </button>
+          <button mat-stroked-button (click)="applySelectedTemplate()" [disabled]="!selectedTemplateId">
+            <mat-icon>play_arrow</mat-icon>
+            Apply
+          </button>
+          <button mat-button color="warn" (click)="deleteTemplate()" [disabled]="!selectedTemplateId">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </div>
+      </mat-card>
+
+      <mat-card class="panel">
+        <div class="panel-header">
+          <div>
             <p class="eyebrow">Date range</p>
             <h3>Choose your window</h3>
           </div>
@@ -217,21 +280,21 @@
                 <tr>
                   <th (click)="applySortFromTable('date')">
                     Date
-                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('date') as dir">
-                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('date')">
+                      {{ primarySortDirection('date') === 'asc' ? 'north' : 'south' }}
                     </mat-icon>
                   </th>
                   <th *ngIf="options.includeTime">Time</th>
                   <th (click)="applySortFromTable('client')">
                     Client
-                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('client') as dir">
-                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('client')">
+                      {{ primarySortDirection('client') === 'asc' ? 'north' : 'south' }}
                     </mat-icon>
                   </th>
                   <th (click)="applySortFromTable('service')">
                     Service
-                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('service') as dir">
-                      {{ dir === 'asc' ? 'north' : 'south' }}
+                    <mat-icon class="sort-icon" *ngIf="primarySortDirection('service')">
+                      {{ primarySortDirection('service') === 'asc' ? 'north' : 'south' }}
                     </mat-icon>
                   </th>
                   <th>Duration</th>

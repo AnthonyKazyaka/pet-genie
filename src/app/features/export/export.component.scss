@@ -130,6 +130,16 @@
   gap: $spacing-2;
 }
 
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
+
+.inline-button {
+  justify-content: flex-start;
+}
+
 .full-width {
   width: 100%;
 }
