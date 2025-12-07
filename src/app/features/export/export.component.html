@@ -243,22 +243,6 @@
         </div>
       </div>
 
-        <div class="summary-footer">
-          <span class="pill muted">
-            <mat-icon>calendar_month</mat-icon>
-            {{ options.startDate | date: 'MMM d, y' }} – {{ options.endDate | date: 'MMM d, y' }}
-          </span>
-          <span class="pill muted" *ngIf="options.searchTerm">Search: "{{ options.searchTerm }}"</span>
-          <span class="pill muted" *ngIf="options.workEventsOnly">Work events only</span>
-        </div>
-
-        <div class="group-summary" *ngIf="groups.length">
-          <mat-chip *ngFor="let group of groups" [matTooltip]="group.totalDurationMinutes + ' minutes'">
-            <span class="chip-label">{{ group.label }}</span>
-            <span class="chip-count">{{ group.count }}</span>
-          </mat-chip>
-        </div>
-
         <div class="loading-banner" *ngIf="isLoadingEvents">
           <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
           <span>Loading events...</span>
