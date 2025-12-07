@@ -97,6 +97,7 @@ export class ExportComponent implements OnInit {
   count = 0;
   rows: ExportRow[] = [];
   groups: ExportGroup[] = [];
+  exportFormat: 'text' | 'csv' = 'csv';
 
   groupFields: GroupField[] = ['date', 'client', 'service', 'week', 'month'];
   sortFields: SortField[] = ['date', 'client', 'service', 'time'];
@@ -243,38 +244,26 @@ export class ExportComponent implements OnInit {
     this.generatePreview();
   }
 
-  copyToClipboard(): void {
-    if (!this.preview) return;
-    navigator.clipboard?.writeText(this.preview).then(() => {
-      this.snackBar.open('Export copied to clipboard', 'OK', { duration: 2500 });
+  copyCurrent(): void {
+    const content = this.exportFormat === 'csv' ? this.csvContent : this.preview;
+    if (!content) return;
+    navigator.clipboard?.writeText(content).then(() => {
+      const label = this.exportFormat === 'csv' ? 'CSV copied to clipboard' : 'Export copied to clipboard';
+      this.snackBar.open(label, 'OK', { duration: 2500 });
     });
   }
 
-  copyCsv(): void {
-    if (!this.csvContent) return;
-    navigator.clipboard?.writeText(this.csvContent).then(() => {
-      this.snackBar.open('CSV copied to clipboard', 'OK', { duration: 2500 });
-    });
-  }
-
-  download(): void {
-    if (!this.preview) return;
-    const blob = new Blob([this.preview], { type: 'text/plain;charset=utf-8' });
+  downloadCurrent(): void {
+    const isCsv = this.exportFormat === 'csv';
+    const content = isCsv ? this.csvContent : this.preview;
+    if (!content) return;
+    const mime = isCsv ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8';
+    const extension = isCsv ? 'csv' : 'txt';
+    const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'events-export.txt';
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  downloadCsv(): void {
-    if (!this.csvContent) return;
-    const blob = new Blob([this.csvContent], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'events-export.csv';
+    link.download = `events-export.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -310,6 +299,10 @@ export class ExportComponent implements OnInit {
 
   isFieldInSorts(field: SortField): boolean {
     return this.options.sortLevels.some((s) => s.field === field);
+  }
+
+  setExportFormat(format: 'text' | 'csv'): void {
+    this.exportFormat = format;
   }
 
   navigateBack(): void {

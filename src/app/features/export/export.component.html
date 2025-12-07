@@ -158,27 +158,27 @@
 
     <section class="preview-column">
       <mat-card class="summary-card">
-        <div class="summary-header">
-          <div>
-            <p class="eyebrow">Preview</p>
-            <h2>{{ count }} {{ count === 1 ? 'event' : 'events' }} ready</h2>
-            <p class="muted">Copy a formatted list or export a CSV right away.</p>
-          </div>
-          <div class="summary-actions">
-            <button mat-stroked-button (click)="copyToClipboard()" [disabled]="!preview">
-              <mat-icon>content_copy</mat-icon>
-              Copy list
-            </button>
-            <button mat-stroked-button (click)="copyCsv()" [disabled]="!csvContent">
-              <mat-icon>table_view</mat-icon>
-              Copy CSV
-            </button>
-            <button mat-flat-button color="primary" (click)="downloadCsv()" [disabled]="!csvContent">
-              <mat-icon>download</mat-icon>
-              Download CSV
-            </button>
-          </div>
+      <div class="summary-header">
+        <div>
+          <p class="eyebrow">Preview</p>
+          <h2>{{ count }} {{ count === 1 ? 'event' : 'events' }} ready</h2>
+          <p class="muted">Copy a formatted list or export a CSV right away.</p>
         </div>
+        <div class="summary-actions">
+          <mat-button-toggle-group [value]="exportFormat" (change)="setExportFormat($event.value)">
+            <mat-button-toggle value="csv">Spreadsheet</mat-button-toggle>
+            <mat-button-toggle value="text">Text</mat-button-toggle>
+          </mat-button-toggle-group>
+          <button mat-stroked-button (click)="copyCurrent()" [disabled]="exportFormat === 'csv' ? !csvContent : !preview">
+            <mat-icon>content_copy</mat-icon>
+            Copy {{ exportFormat === 'csv' ? 'CSV' : 'text' }}
+          </button>
+          <button mat-flat-button color="primary" (click)="downloadCurrent()" [disabled]="exportFormat === 'csv' ? !csvContent : !preview">
+            <mat-icon>download</mat-icon>
+            Download {{ exportFormat === 'csv' ? 'CSV' : 'text' }}
+          </button>
+        </div>
+      </div>
 
         <div class="summary-footer">
           <span class="pill muted">
@@ -205,27 +205,13 @@
       <mat-card class="panel preview-pane">
         <div class="pane-header">
           <div>
-            <p class="eyebrow">Formatted list</p>
-            <h3>Copy-friendly text</h3>
-          </div>
-          <button mat-icon-button matTooltip="Download text" (click)="download()" [disabled]="!preview">
-            <mat-icon>download</mat-icon>
-          </button>
-        </div>
-        <div class="preview-body" *ngIf="count > 0; else noPreview">
-          <pre class="preview-content">{{ preview }}</pre>
-        </div>
-      </mat-card>
-
-      <mat-card class="panel preview-pane">
-        <div class="pane-header">
-          <div>
-            <p class="eyebrow">CSV / Table</p>
-            <h3>Sortable rows</h3>
+            <p class="eyebrow">Selected view</p>
+            <h3>{{ exportFormat === 'csv' ? 'Spreadsheet preview' : 'Copy-friendly text' }}</h3>
           </div>
         </div>
         <div class="preview-body" *ngIf="count > 0; else noPreview">
-          <div class="table-scroll">
+          <pre class="preview-content" *ngIf="exportFormat === 'text'">{{ preview }}</pre>
+          <div class="table-scroll" *ngIf="exportFormat === 'csv'">
             <table class="preview-table">
               <thead>
                 <tr>

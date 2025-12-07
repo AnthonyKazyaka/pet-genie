@@ -17,10 +17,6 @@
             <mat-button-toggle value="week">Week</mat-button-toggle>
             <mat-button-toggle value="day">Day</mat-button-toggle>
           </mat-button-toggle-group>
-          <button mat-stroked-button (click)="openExportDialog()" [disabled]="isLoading()" aria-label="Export events">
-            <mat-icon>download</mat-icon>
-            Export
-          </button>
           <button mat-icon-button (click)="refreshEvents()" [disabled]="isLoading()" aria-label="Refresh">
             <mat-icon [class.spinning]="isLoading()">refresh</mat-icon>
           </button>
