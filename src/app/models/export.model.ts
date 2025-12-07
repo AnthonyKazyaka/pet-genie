@@ -20,9 +20,34 @@ export interface ExportOptions {
   groupLevels: GroupLevel[];
   sortLevels: SortLevel[];
   workEventsOnly: boolean;
+  searchTerm?: string;
 }
 
 export interface ExportResult {
   content: string;
+  csv: string;
   count: number;
+  rows: ExportRow[];
+  groups: ExportGroup[];
+}
+
+export interface ExportRow {
+  id: string;
+  date: string;
+  dateLabel: string;
+  timeLabel: string;
+  client: string;
+  service: string;
+  durationMinutes: number;
+  location?: string;
+  isWorkEvent: boolean;
+  groupPath: string[];
+}
+
+export interface ExportGroup {
+  key: string;
+  label: string;
+  depth: number;
+  count: number;
+  totalDurationMinutes: number;
 }

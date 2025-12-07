@@ -348,7 +348,7 @@ export class CalendarComponent implements OnInit, OnDestroy {
   openExportDialog(): void {
     const { start, end } = this.getRangeForView();
     this.dialog.open(ExportDialogComponent, {
-      width: '720px',
+      width: '900px',
       data: {
         events: this.events(),
         defaultOptions: {

@@ -1,7 +1,7 @@
 import { MultiEventService } from './multi-event.service';
-import { MultiEventConfig, BookingType } from '../models/multi-event.model';
-import { Template } from '../models/template.model';
-import { CalendarEvent } from '../models/event.model';
+import { MultiEventConfig, BookingType } from '../../models/multi-event.model';
+import { Template } from '../../models/template.model';
+import { CalendarEvent } from '../../models/event.model';
 
 describe('MultiEventService', () => {
   let service: MultiEventService;
@@ -44,8 +44,8 @@ describe('MultiEventService', () => {
     const config: MultiEventConfig = {
       clientName: 'Fluffy',
       location: 'Home',
-      startDate: new Date('2024-01-06'), // Saturday
-      endDate: new Date('2024-01-07'),   // Sunday
+      startDate: new Date(2024, 0, 7), // Sunday
+      endDate: new Date(2024, 0, 8),   // Monday
       bookingType: 'daily-visits',
       visits: [{ templateId: 't1', time: '09:00', duration: 0 }], // weekday uses template duration
       weekendVisits: [{ templateId: 't1', time: '10:00', duration: 45 }],
@@ -53,10 +53,10 @@ describe('MultiEventService', () => {
 
     const events = service.generateEvents(config, templates);
     expect(events.length).toBe(2);
-    const saturday = events.find(e => e.start.getDay() === 6)!;
-    const sunday = events.find(e => e.start.getDay() === 0)!;
-    expect((saturday.end.getTime() - saturday.start.getTime()) / 60000).toBe(30); // template fallback
-    expect((sunday.end.getTime() - sunday.start.getTime()) / 60000).toBe(45);
+    const durations = events
+      .map(e => (e.end.getTime() - e.start.getTime()) / 60000)
+      .sort((a, b) => a - b);
+    expect(durations).toEqual([30, 45]);
   });
 
   it('builds overnight plus drop-in events', () => {

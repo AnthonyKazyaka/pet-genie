@@ -8,6 +8,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import {
   DataService,
@@ -23,6 +24,7 @@ import {
   getWorkloadLevel,
 } from '../../models';
 import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
+import { ExportDialogComponent } from '../export/export-dialog/export-dialog.component';
 import { firstValueFrom } from 'rxjs';
 import {
   format,
@@ -80,10 +82,12 @@ interface DayOfWeekStats {
     MatIconModule,
     MatButtonToggleModule,
     MatProgressSpinnerModule,
-    MatTooltipModule,
-    MatSnackBarModule,
-    SkeletonLoaderComponent,
-    EmptyStateComponent,
+  MatTooltipModule,
+  MatDialogModule,
+  MatSnackBarModule,
+  SkeletonLoaderComponent,
+  EmptyStateComponent,
+  ExportDialogComponent,
   ],
   styleUrl: './analytics.component.scss',
   templateUrl: './analytics.component.html',
@@ -94,6 +98,7 @@ export class AnalyticsComponent implements OnInit {
   private workloadService = inject(WorkloadService);
   private eventProcessor = inject(EventProcessorService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   timeRange: 'week' | 'month' | '3months' = 'month';
   isLoading = signal(false);
@@ -269,6 +274,23 @@ export class AnalyticsComponent implements OnInit {
     }
   }
 
+  openExportDialog(): void {
+    const dateRange = this.getDateRange();
+    this.dialog.open(ExportDialogComponent, {
+      width: '900px',
+      data: {
+        events: this.events(),
+        defaultOptions: {
+          startDate: dateRange.start,
+          endDate: dateRange.end,
+          includeTime: true,
+          includeLocation: true,
+          workEventsOnly: true,
+        },
+      },
+    });
+  }
+
   async loadEvents(): Promise<void> {
     try {
       this.isLoading.set(true);
@@ -381,31 +403,4 @@ export class AnalyticsComponent implements OnInit {
     return labels[type] || 'Other';
   }
 
-  exportToCSV(): void {
-    const events = this.events().filter(e => e.isWorkEvent);
-    if (events.length === 0) {
-      alert('No events to export');
-      return;
-    }
-
-    const headers = ['Date', 'Start Time', 'End Time', 'Title', 'Client', 'Service Type', 'Duration (min)'];
-    const rows = events.map(e => [
-      format(e.start, 'yyyy-MM-dd'),
-      format(e.start, 'HH:mm'),
-      format(e.end, 'HH:mm'),
-      `"${e.title.replace(/"/g, '""')}"`,
-      e.clientName || '',
-      e.serviceInfo?.type || '',
-      Math.round((e.end.getTime() - e.start.getTime()) / (1000 * 60)),
-    ]);
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pet-genie-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 }

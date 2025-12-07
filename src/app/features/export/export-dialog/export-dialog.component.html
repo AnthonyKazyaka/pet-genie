@@ -23,6 +23,23 @@
     <mat-checkbox [(ngModel)]="options.workEventsOnly" (change)="generatePreview()">Work events only</mat-checkbox>
   </div>
 
+  <div class="search-row">
+    <mat-form-field appearance="outline" class="flex-1">
+      <mat-label>Quick search</mat-label>
+      <input
+        matInput
+        placeholder="Client, pet, service, location"
+        [ngModel]="options.searchTerm"
+        (ngModelChange)="updateSearch($event)"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+    <div class="sort-pill" *ngIf="options.sortLevels.length">
+      <mat-icon>sort</mat-icon>
+      {{ options.sortLevels[0].field }} · {{ options.sortLevels[0].direction }}
+    </div>
+  </div>
+
   <section class="stack">
     <div class="section-header">
       <h3>Grouping</h3>
@@ -88,19 +105,113 @@
         <h3>Preview</h3>
         <p>{{ count }} events</p>
       </div>
-      <button mat-stroked-button color="primary" (click)="generatePreview()">
-        <mat-icon>refresh</mat-icon>
-        Refresh
-      </button>
+      <div class="preview-actions">
+        <button mat-stroked-button color="primary" (click)="generatePreview()">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
+        <button mat-button (click)="copyToClipboard()" [disabled]="!preview">
+          <mat-icon>content_copy</mat-icon>
+          Copy text
+        </button>
+        <button mat-button (click)="copyCsv()" [disabled]="!csvContent">
+          <mat-icon>table_view</mat-icon>
+          Copy CSV
+        </button>
+        <button mat-button (click)="download()" [disabled]="!preview">
+          <mat-icon>download</mat-icon>
+          Text
+        </button>
+        <button mat-raised-button color="primary" (click)="downloadCsv()" [disabled]="!csvContent">
+          <mat-icon>grid_on</mat-icon>
+          CSV
+        </button>
+      </div>
     </div>
-    <pre class="preview-content">{{ preview }}</pre>
+
+    <div class="group-summary" *ngIf="groups.length">
+      <mat-chip *ngFor="let group of groups" [matTooltip]="group.totalDurationMinutes + ' minutes'">
+        <span class="chip-label">{{ group.label }}</span>
+        <span class="chip-count">{{ group.count }}</span>
+      </mat-chip>
+    </div>
+
+    <div class="preview-grid" *ngIf="count > 0; else noPreview">
+      <div class="preview-pane">
+        <div class="pane-header">
+          <h4>Formatted List</h4>
+          <span class="muted">Optimized for copy/paste</span>
+        </div>
+        <pre class="preview-content">{{ preview }}</pre>
+      </div>
+
+      <div class="preview-pane">
+        <div class="pane-header">
+          <h4>CSV / Table</h4>
+          <span class="muted">Sortable and filterable</span>
+        </div>
+        <div class="table-scroll">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th (click)="applySortFromTable('date')">
+                  Date
+                  @if (primarySortDirection('date') as dir) {
+                    <mat-icon class="sort-icon">{{ dir === 'asc' ? 'north' : 'south' }}</mat-icon>
+                  }
+                </th>
+                @if (options.includeTime) {
+                  <th>Time</th>
+                }
+                <th (click)="applySortFromTable('client')">
+                  Client
+                  @if (primarySortDirection('client') as dir) {
+                    <mat-icon class="sort-icon">{{ dir === 'asc' ? 'north' : 'south' }}</mat-icon>
+                  }
+                </th>
+                <th (click)="applySortFromTable('service')">
+                  Service
+                  @if (primarySortDirection('service') as dir) {
+                    <mat-icon class="sort-icon">{{ dir === 'asc' ? 'north' : 'south' }}</mat-icon>
+                  }
+                </th>
+                <th>Duration</th>
+                @if (options.includeLocation) {
+                  <th>Location</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows; track row.id) {
+                <tr>
+                  <td>
+                    <div class="cell-primary">{{ row.dateLabel }}</div>
+                    @if (row.groupPath.length) {
+                      <div class="cell-subtle">{{ row.groupPath.join(' / ') }}</div>
+                    }
+                  </td>
+                  @if (options.includeTime) {
+                    <td>{{ row.timeLabel }}</td>
+                  }
+                  <td>{{ row.client }}</td>
+                  <td>{{ row.service }}</td>
+                  <td>{{ formatDuration(row.durationMinutes) }}</td>
+                  @if (options.includeLocation) {
+                    <td>{{ row.location || '—' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <ng-template #noPreview>
+      <p class="muted">No events match this filter.</p>
+    </ng-template>
   </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="close()">Close</button>
-  <button mat-raised-button color="primary">
-    <mat-icon>download</mat-icon>
-    Export
-  </button>
 </mat-dialog-actions>

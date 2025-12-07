@@ -11,7 +11,7 @@
             <mat-button-toggle value="month">This Month</mat-button-toggle>
             <mat-button-toggle value="3months">3 Months</mat-button-toggle>
           </mat-button-toggle-group>
-          <button mat-stroked-button (click)="exportToCSV()" [disabled]="isLoading() || events().length === 0">
+          <button mat-stroked-button (click)="openExportDialog()" [disabled]="isLoading() || events().length === 0">
             <mat-icon>download</mat-icon>
             Export
           </button>

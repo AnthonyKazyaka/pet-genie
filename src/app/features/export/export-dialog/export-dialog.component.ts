@@ -10,10 +10,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CalendarEvent } from '../../../models';
 import {
   ExportOptions,
+  ExportGroup,
+  ExportRow,
   GroupLevel,
   GroupField,
   SortLevel,
@@ -43,6 +46,7 @@ export interface ExportDialogData {
     MatCheckboxModule,
     MatChipsModule,
     MatSnackBarModule,
+    MatTooltipModule,
   ],
   templateUrl: './export-dialog.component.html',
   styleUrl: './export-dialog.component.scss',
@@ -63,10 +67,14 @@ export class ExportDialogComponent implements OnInit {
     groupLevels: [],
     sortLevels: [],
     workEventsOnly: false,
+    searchTerm: '',
   };
 
   preview = '';
+  csvContent = '';
   count = 0;
+  rows: ExportRow[] = [];
+  groups: ExportGroup[] = [];
 
   groupFields: GroupField[] = ['date', 'client', 'service', 'week', 'month'];
   sortFields: SortField[] = ['date', 'client', 'service', 'time'];
@@ -84,9 +92,12 @@ export class ExportDialogComponent implements OnInit {
   }
 
   generatePreview(): void {
-    const { content, count } = this.exporter.export(this.events, this.options);
-    this.preview = content;
-    this.count = count;
+    const result = this.exporter.export(this.events, this.options);
+    this.preview = result.content;
+    this.csvContent = result.csv;
+    this.count = result.count;
+    this.rows = result.rows;
+    this.groups = result.groups;
   }
 
   addGroup(field: GroupField): void {
@@ -138,6 +149,13 @@ export class ExportDialogComponent implements OnInit {
     });
   }
 
+  copyCsv(): void {
+    if (!this.csvContent) return;
+    navigator.clipboard?.writeText(this.csvContent).then(() => {
+      this.snackBar.open('CSV copied to clipboard', 'OK', { duration: 2500 });
+    });
+  }
+
   download(): void {
     if (!this.preview) return;
     const blob = new Blob([this.preview], { type: 'text/plain;charset=utf-8' });
@@ -147,6 +165,42 @@ export class ExportDialogComponent implements OnInit {
     link.download = 'events-export.txt';
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  downloadCsv(): void {
+    if (!this.csvContent) return;
+    const blob = new Blob([this.csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'events-export.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  updateSearch(term: string): void {
+    this.options = { ...this.options, searchTerm: term };
+    this.generatePreview();
+  }
+
+  applySortFromTable(field: SortField): void {
+    const [primary, ...rest] = this.options.sortLevels;
+    if (primary?.field === field) {
+      const toggled = primary.direction === 'asc' ? 'desc' : 'asc';
+      this.options.sortLevels = [{ ...primary, direction: toggled }, ...rest];
+    } else {
+      this.options.sortLevels = [{ field, direction: 'asc' }, ...(this.options.sortLevels || [])];
+    }
+    this.generatePreview();
+  }
+
+  primarySortDirection(field: SortField): SortDirection | null {
+    const primary = this.options.sortLevels[0];
+    return primary?.field === field ? primary.direction : null;
+  }
+
+  formatDuration(minutes: number): string {
+    return `${minutes} min`;
   }
 
   close(): void {

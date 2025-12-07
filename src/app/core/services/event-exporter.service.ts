@@ -1,20 +1,23 @@
 import { Injectable } from '@angular/core';
-import { differenceInMinutes, format, isWithinInterval } from 'date-fns';
-import { CalendarEvent, ServiceInfo } from '../../models/event.model';
+import { differenceInMinutes, format, isWithinInterval, startOfDay, endOfDay, startOfWeek } from 'date-fns';
+import { CalendarEvent } from '../../models/event.model';
 import {
+  ExportGroup,
   ExportOptions,
   ExportResult,
+  ExportRow,
   GroupField,
   GroupLevel,
   SortLevel,
 } from '../../models/export.model';
 import { EventProcessorService } from './event-processor.service';
 
-/**
- * EventExporterService
- * Handles grouping, sorting, and formatting of events for export (text/clipboard/file).
- * Structure based on gps-admin export feature; formatting kept lightweight for now.
- */
+interface GroupBucket {
+  key: string;
+  label: string;
+  rows: ExportRow[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -22,23 +25,66 @@ export class EventExporterService {
   constructor(private eventProcessor: EventProcessorService) {}
 
   export(events: CalendarEvent[], options: ExportOptions): ExportResult {
-    const filtered = this.filterEvents(events, options);
-    const sorted = this.sortEvents(filtered, options.sortLevels);
-    const grouped = this.groupEvents(sorted, options.groupLevels);
-    const content = this.formatGroups(grouped, options);
-    return { content, count: filtered.length };
+    const normalized = this.normalizeOptions(options);
+    const filtered = this.filterEvents(events, normalized);
+    const sorted = this.sortEvents(filtered, normalized.sortLevels);
+    const rows = this.buildRows(sorted, normalized);
+    const grouped = this.groupRows(rows, normalized.groupLevels);
+    const content = this.formatGroups(grouped, normalized);
+    const csv = this.formatCsv(rows, normalized);
+    const groups = this.buildGroupSummaries(grouped);
+
+    return {
+      content,
+      csv,
+      count: rows.length,
+      rows,
+      groups,
+    };
+  }
+
+  private normalizeOptions(options: ExportOptions): ExportOptions {
+    return {
+      ...options,
+      startDate: startOfDay(options.startDate),
+      endDate: endOfDay(options.endDate),
+      groupLevels: [...options.groupLevels].sort((a, b) => a.order - b.order),
+      sortLevels: [...options.sortLevels],
+      searchTerm: options.searchTerm?.trim(),
+    };
   }
 
   private filterEvents(events: CalendarEvent[], options: ExportOptions): CalendarEvent[] {
-    return events.filter((event) => {
+    const search = options.searchTerm?.toLowerCase();
+    return events.filter(event => {
       if (options.workEventsOnly && !this.eventProcessor.isWorkEvent(event)) {
         return false;
       }
 
-      return isWithinInterval(event.start, {
+      const isWithinRange = isWithinInterval(event.start, {
         start: options.startDate,
         end: options.endDate,
       });
+
+      if (!isWithinRange) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
+      const haystack = [
+        event.title,
+        event.clientName,
+        event.serviceInfo?.type,
+        event.location,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(search);
     });
   }
 
@@ -69,8 +115,11 @@ export class EventExporterService {
     switch (field) {
       case 'date':
         return (a.start.getTime() - b.start.getTime()) * dir;
-      case 'time':
-        return (a.start.getHours() * 60 + a.start.getMinutes() - (b.start.getHours() * 60 + b.start.getMinutes())) * dir;
+      case 'time': {
+        const minutesA = a.start.getHours() * 60 + a.start.getMinutes();
+        const minutesB = b.start.getHours() * 60 + b.start.getMinutes();
+        return (minutesA - minutesB) * dir;
+      }
       case 'client':
         return this.compareStrings(a.clientName || '', b.clientName || '') * dir;
       case 'service':
@@ -84,38 +133,112 @@ export class EventExporterService {
     return a.localeCompare(b, undefined, { sensitivity: 'base' });
   }
 
-  private groupEvents(
-    events: CalendarEvent[],
-    groupLevels: GroupLevel[]
-  ): Map<string, CalendarEvent[]> {
+  private buildRows(events: CalendarEvent[], options: ExportOptions): ExportRow[] {
+    return events.map(event => {
+      const durationMinutes = event.serviceInfo?.duration ?? differenceInMinutes(event.end, event.start);
+      const timeLabel = options.includeTime
+        ? `${format(event.start, 'MMM d, h:mma')} - ${format(event.end, 'h:mma')}`
+        : '';
+
+      return {
+        id: event.id,
+        date: format(event.start, 'yyyy-MM-dd'),
+        dateLabel: format(event.start, 'EEE, MMM d'),
+        timeLabel: timeLabel || format(event.start, 'EEE, MMM d'),
+        client: event.clientName || event.title,
+        service: event.serviceInfo?.type
+          ? this.eventProcessor.getServiceTypeLabel(event.serviceInfo.type)
+          : 'Other',
+        durationMinutes,
+        location: event.location,
+        isWorkEvent: !!event.isWorkEvent,
+        groupPath: options.groupLevels.map(level =>
+          this.formatGroupLabel(this.getGroupKey(event, level.field), level.field)
+        ),
+      };
+    });
+  }
+
+  private groupRows(rows: ExportRow[], groupLevels: GroupLevel[]): GroupBucket[] {
+    if (!rows.length) {
+      return [];
+    }
+
     if (!groupLevels.length) {
-      return new Map([['', events]]);
+      return [{ key: 'All events', label: 'All events', rows }];
     }
 
-    const [current, ...rest] = groupLevels.sort((a, b) => a.order - b.order);
-    const groups = new Map<string, CalendarEvent[]>();
+    const buckets = new Map<string, ExportRow[]>();
+    const orderedLevels = [...groupLevels].sort((a, b) => a.order - b.order);
 
-    for (const event of events) {
-      const key = this.getGroupKey(event, current.field);
-      const list = groups.get(key) ?? [];
-      list.push(event);
-      groups.set(key, list);
-    }
+    rows.forEach(row => {
+      const path = orderedLevels.map((_, idx) => row.groupPath[idx] || 'Other');
+      const key = path.join(' / ');
+      const list = buckets.get(key) ?? [];
+      list.push(row);
+      buckets.set(key, list);
+    });
 
-    if (!rest.length) {
-      return groups;
-    }
+    return Array.from(buckets.entries()).map(([key, bucketRows]) => ({
+      key,
+      label: key,
+      rows: bucketRows,
+    }));
+  }
 
-    // Recursively group deeper levels
-    const nested = new Map<string, CalendarEvent[]>();
-    for (const [key, groupEvents] of groups.entries()) {
-      const subgroup = this.groupEvents(groupEvents, rest.map((g) => ({ ...g, order: g.order - 1 })));
-      for (const [subKey, subEvents] of subgroup.entries()) {
-        nested.set(`${key}::${subKey}`, subEvents);
+  private buildGroupSummaries(groupedRows: GroupBucket[]): ExportGroup[] {
+    return groupedRows.map(group => ({
+      key: group.key,
+      label: group.label,
+      depth: group.label.split('/').length,
+      count: group.rows.length,
+      totalDurationMinutes: group.rows.reduce((sum, row) => sum + row.durationMinutes, 0),
+    }));
+  }
+
+  private formatGroups(groups: GroupBucket[], options: ExportOptions): string {
+    const lines: string[] = [];
+
+    groups.forEach(group => {
+      lines.push(`${group.label} (${group.rows.length})`);
+      group.rows.forEach(row => lines.push(this.formatRowLine(row, options)));
+      lines.push('');
+    });
+
+    return lines.join('\n').trim();
+  }
+
+  private formatGroupLabel(raw: string, field: GroupField): string {
+    switch (field) {
+      case 'date':
+        return format(this.parseDateKey(raw), 'EEE, MMM d');
+      case 'week': {
+        const start = startOfWeek(this.parseDateKey(raw));
+        return `Week of ${format(start, 'MMM d')}`;
       }
+      case 'month':
+        return format(this.parseDateKey(raw), 'MMMM yyyy');
+      case 'client':
+        return raw || 'Unknown Client';
+      case 'service':
+        return raw || 'Other';
+      default:
+        return raw || 'Other';
+    }
+  }
+
+  private formatRowLine(row: ExportRow, options: ExportOptions): string {
+    const parts = [row.dateLabel];
+    if (options.includeTime) {
+      parts.push(row.timeLabel);
+    }
+    parts.push(row.client, row.service, `${row.durationMinutes} min`);
+
+    if (options.includeLocation && row.location) {
+      parts.push(`@ ${row.location}`);
     }
 
-    return nested;
+    return parts.join(' | ');
   }
 
   private getGroupKey(event: CalendarEvent, field: GroupField): string {
@@ -123,9 +246,9 @@ export class EventExporterService {
       case 'date':
         return format(event.start, 'yyyy-MM-dd');
       case 'week':
-        return format(event.start, 'yyyy-ww');
+        return format(startOfWeek(event.start), 'yyyy-MM-dd');
       case 'month':
-        return format(event.start, 'yyyy-MM');
+        return format(event.start, 'yyyy-MM-01');
       case 'client':
         return event.clientName || 'Unknown Client';
       case 'service':
@@ -135,71 +258,44 @@ export class EventExporterService {
     }
   }
 
-  private formatGroups(groups: Map<string, CalendarEvent[]>, options: ExportOptions): string {
-    const lines: string[] = [];
-
-    for (const [key, events] of groups.entries()) {
-      if (key) {
-        lines.push(this.formatGroupHeader(key, options));
-      }
-      for (const event of events) {
-        lines.push(this.formatEventLine(event, options));
-      }
-      lines.push(''); // spacer between groups
-    }
-
-    return lines.join('\n').trim();
-  }
-
-  private formatGroupHeader(key: string, options: ExportOptions): string {
-    // For multi-level grouping keys encoded with '::', show readable breadcrumb.
-    const parts = key.split('::').filter(Boolean);
-    const labels = parts.map((part) => this.formatGroupLabel(part));
-    return labels.join(' / ');
-  }
-
-  private formatGroupLabel(raw: string): string {
-    // Try to detect date-like keys
-    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) {
-      return format(new Date(raw), 'EEE, MMM d');
-    }
-    if (/^\\d{4}-\\d{2}$/.test(raw)) {
-      return format(new Date(raw + '-01'), 'MMMM yyyy');
-    }
-    if (/^\\d{4}-\\d{2}$/.test(raw)) {
-      return raw;
-    }
-    return raw;
-  }
-
-  private formatEventLine(event: CalendarEvent, options: ExportOptions): string {
-    const parts: string[] = [];
-    const serviceInfo: ServiceInfo | undefined = event.serviceInfo;
-
-    // Time & date
+  private formatCsv(rows: ExportRow[], options: ExportOptions): string {
+    const headers = ['Date'];
     if (options.includeTime) {
-      parts.push(format(event.start, 'MMM d, h:mma'));
-    } else {
-      parts.push(format(event.start, 'MMM d'));
+      headers.push('Time');
+    }
+    headers.push('Client', 'Service', 'Duration (min)');
+    if (options.includeLocation) {
+      headers.push('Location');
     }
 
-    // Client / title
-    parts.push(event.clientName || event.title);
+    const csvRows = rows.map(row => {
+      const values = [this.escapeCsv(row.dateLabel)];
+      if (options.includeTime) {
+        values.push(this.escapeCsv(row.timeLabel));
+      }
+      values.push(
+        this.escapeCsv(row.client),
+        this.escapeCsv(row.service),
+        row.durationMinutes.toString()
+      );
+      if (options.includeLocation) {
+        values.push(this.escapeCsv(row.location || ''));
+      }
+      return values.join(',');
+    });
 
-    // Service
-    if (serviceInfo?.type) {
-      parts.push(this.eventProcessor.getServiceTypeLabel(serviceInfo.type));
+    return [headers.join(','), ...csvRows].join('\n');
+  }
+
+  private escapeCsv(value: string): string {
+    if (!value) return '';
+    if (/[",\n]/.test(value)) {
+      return `"${value.replace(/"/g, '""')}"`;
     }
+    return value;
+  }
 
-    // Duration
-    const durationMinutes = serviceInfo?.duration ?? differenceInMinutes(event.end, event.start);
-    parts.push(`${durationMinutes} min`);
-
-    // Location
-    if (options.includeLocation && event.location) {
-      parts.push(`@ ${event.location}`);
-    }
-
-    return parts.join(' | ');
+  private parseDateKey(raw: string): Date {
+    return new Date(`${raw}T12:00:00`);
   }
 }
