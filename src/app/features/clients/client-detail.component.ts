@@ -49,6 +49,7 @@ export class ClientDetailComponent implements OnInit {
   isLoading = signal(true);
   isEditing = signal(false);
   isNew = signal(false);
+  isAddingPet = signal(false);
 
   // Form data
   formData = signal<CreateClientDto>({
@@ -62,6 +63,21 @@ export class ClientDetailComponent implements OnInit {
       phone: '',
       relationship: '',
     },
+  });
+
+  // Pet form data
+  petFormData = signal<CreatePetDto>({
+    clientId: '',
+    name: '',
+    species: '',
+    breed: '',
+    age: undefined,
+    careNotes: '',
+    vetInfo: {
+      clinicName: '',
+      phone: '',
+    },
+    medications: [],
   });
 
   async ngOnInit() {
@@ -179,6 +195,49 @@ export class ClientDetailComponent implements OnInit {
     } catch (error) {
       console.error('Error deleting pet:', error);
       this.snackBar.open('Error deleting pet', 'Close', { duration: 3000 });
+    }
+  }
+
+  showAddPetForm() {
+    const client = this.client();
+    if (!client) return;
+
+    this.petFormData.set({
+      clientId: client.id,
+      name: '',
+      species: '',
+      breed: '',
+      age: undefined,
+      careNotes: '',
+      vetInfo: {
+        clinicName: '',
+        phone: '',
+      },
+      medications: [],
+    });
+    this.isAddingPet.set(true);
+  }
+
+  cancelAddPet() {
+    this.isAddingPet.set(false);
+  }
+
+  async savePet() {
+    const petData = this.petFormData();
+    
+    if (!petData.name || !petData.species) {
+      this.snackBar.open('Name and species are required', 'Close', { duration: 3000 });
+      return;
+    }
+
+    try {
+      await firstValueFrom(this.petService.create(petData));
+      await this.loadClient(this.client()!.id);
+      this.isAddingPet.set(false);
+      this.snackBar.open('Pet added successfully', 'Close', { duration: 2000 });
+    } catch (error) {
+      console.error('Error adding pet:', error);
+      this.snackBar.open('Error adding pet', 'Close', { duration: 3000 });
     }
   }
 

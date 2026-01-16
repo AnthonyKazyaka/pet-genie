@@ -196,11 +196,54 @@
         <mat-tab label="Pets ({{ pets().length }})">
           <div class="tab-content">
             <div class="pets-header">
-              <button mat-raised-button color="primary" [routerLink]="['/clients', client()!.id, 'pets', 'new']">
+              <button mat-raised-button color="primary" (click)="showAddPetForm()" [disabled]="isAddingPet()">
                 <mat-icon>add</mat-icon>
                 Add Pet
               </button>
             </div>
+
+            <!-- Add Pet Form -->
+            @if (isAddingPet()) {
+              <mat-card class="add-pet-form">
+                <mat-card-header>
+                  <mat-card-title>Add New Pet</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Pet Name *</mat-label>
+                      <input matInput [(ngModel)]="petFormData().name" placeholder="Enter pet name" required>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Species *</mat-label>
+                      <input matInput [(ngModel)]="petFormData().species" placeholder="Dog, Cat, etc." required>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Breed</mat-label>
+                      <input matInput [(ngModel)]="petFormData().breed" placeholder="Enter breed">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Age (years)</mat-label>
+                      <input matInput type="number" [(ngModel)]="petFormData().age" placeholder="Age">
+                    </mat-form-field>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Care Notes</mat-label>
+                    <textarea matInput [(ngModel)]="petFormData().careNotes" rows="3" placeholder="Special care instructions"></textarea>
+                  </mat-form-field>
+                </mat-card-content>
+                <mat-card-actions>
+                  <button mat-button (click)="cancelAddPet()">Cancel</button>
+                  <button mat-raised-button color="primary" (click)="savePet()">Save Pet</button>
+                </mat-card-actions>
+              </mat-card>
+            }
 
             @if (pets().length === 0) {
               <mat-card>
@@ -208,7 +251,7 @@
                   <div class="empty-pets">
                     <mat-icon>pets</mat-icon>
                     <p>No pets yet</p>
-                    <button mat-raised-button color="primary" [routerLink]="['/clients', client()!.id, 'pets', 'new']">
+                    <button mat-raised-button color="primary" (click)="showAddPetForm()" [disabled]="isAddingPet()">
                       Add First Pet
                     </button>
                   </div>

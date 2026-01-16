@@ -151,6 +151,32 @@
   margin-bottom: 1.5rem;
 }
 
+.add-pet-form {
+  margin-bottom: 1.5rem;
+
+  mat-card-header {
+    margin-bottom: 1rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  mat-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+  }
+}
+
 .empty-pets {
   display: flex;
   flex-direction: column;

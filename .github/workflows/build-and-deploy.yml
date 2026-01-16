@@ -1,0 +1,96 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Frontend build and deploy job
+  build-frontend:
+    name: Build Angular Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            .npm
+            node_modules
+          key: ${{ runner.os }}-npm-frontend-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-frontend-
+      
+      - name: Install dependencies
+        run: npm ci --cache .npm --prefer-offline
+      
+      - name: Display Angular version
+        run: npx ng version
+      
+      - name: Build Angular application
+        run: npx ng build --configuration=production
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build
+          path: dist/amplify-angular-template/browser
+          retention-days: 7
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist/amplify-angular-template/browser
+          cname: ${{ vars.CUSTOM_DOMAIN }}  # Optional: set CUSTOM_DOMAIN variable if using custom domain
+
+  # Optional: Run tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            .npm
+            node_modules
+          key: ${{ runner.os }}-npm-test-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-test-
+      
+      - name: Install dependencies
+        run: npm ci --cache .npm --prefer-offline
+      
+      - name: Run unit tests
+        run: npm test -- --watch=false --browsers=ChromeHeadless

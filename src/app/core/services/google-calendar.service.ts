@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, NgZone, inject } from '@angular/core';
-import { Observable, from, of, throwError } from 'rxjs';
-import { map, switchMap, catchError, tap } from 'rxjs/operators';
+import { Observable, from, of, throwError, timer, race } from 'rxjs';
+import { map, switchMap, catchError, tap, filter, take, timeout } from 'rxjs/operators';
 import {
   CalendarEvent,
   GoogleCalendar,
@@ -511,6 +511,26 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Wait for Google API to be initialized
+   * Returns an observable that completes when API is ready or times out
+   */
+  private waitForApiInitialization(timeoutMs: number = 10000): Observable<boolean> {
+    // If already initialized, return immediately
+    if (this.gapiInitialized && this.getGapi()?.client?.calendar) {
+      return of(true);
+    }
+
+    // Poll for initialization
+    return timer(0, 100).pipe(
+      map(() => this.gapiInitialized && this.getGapi()?.client?.calendar),
+      filter(isReady => !!isReady),
+      take(1),
+      timeout(timeoutMs),
+      catchError(() => of(false))
+    );
+  }
+
+  /**
    * Fetch a single event by ID from a calendar
    */
   getEventById(calendarId: string, eventId: string): Observable<CalendarEvent | null> {
@@ -518,37 +538,43 @@ export class GoogleCalendarService {
       return throwError(() => new Error('Not signed in'));
     }
 
-    if (!this.gapiInitialized || !this.getGapi()?.client?.calendar) {
-      return throwError(() => new Error('Google API not initialized'));
-    }
-
-    return from(
-      this.getGapi().client.calendar.events.get({
-        calendarId: calendarId,
-        eventId: eventId,
-      })
-    ).pipe(
-      map((response: any) => {
-        const item: RawGoogleCalendarEvent = response.result;
-        return this.parseGoogleEvent(item, calendarId);
-      }),
-      catchError((error) => {
-        console.error(`Failed to fetch event ${eventId}:`, error);
-        // Return null if event not found
-        if (error.status === 404) {
+    // Wait for API initialization before attempting to fetch
+    return this.waitForApiInitialization().pipe(
+      switchMap(isReady => {
+        if (!isReady) {
+          console.warn('Google API initialization timed out');
           return of(null);
         }
-        // If 401, token is invalid
-        if (error.status === 401 || error.result?.error?.code === 401) {
-          this.clearStoredToken();
-          this.authStateSignal.update((state) => ({
-            ...state,
-            accessToken: null,
-            tokenExpiry: null,
-            isSignedIn: false,
-          }));
-        }
-        return of(null);
+
+        return from(
+          this.getGapi().client.calendar.events.get({
+            calendarId: calendarId,
+            eventId: eventId,
+          })
+        ).pipe(
+          map((response: any) => {
+            const item: RawGoogleCalendarEvent = response.result;
+            return this.parseGoogleEvent(item, calendarId);
+          }),
+          catchError((error) => {
+            console.error(`Failed to fetch event ${eventId}:`, error);
+            // Return null if event not found
+            if (error.status === 404) {
+              return of(null);
+            }
+            // If 401, token is invalid
+            if (error.status === 401 || error.result?.error?.code === 401) {
+              this.clearStoredToken();
+              this.authStateSignal.update((state) => ({
+                ...state,
+                accessToken: null,
+                tokenExpiry: null,
+                isSignedIn: false,
+              }));
+            }
+            return of(null);
+          })
+        );
       })
     );
   }
