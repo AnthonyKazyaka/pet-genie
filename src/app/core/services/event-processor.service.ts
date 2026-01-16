@@ -42,6 +42,8 @@ export class EventProcessorService {
 
   // Personal event patterns - definitely NOT work
   private readonly personalEventPatterns = {
+    // Admin/business time (not client appointments)
+    admin: /\b(admin|administration|administrative|paperwork|bookkeeping|billing)\b/i,
     // Off day markers
     offDay: /^\s*✨\s*off\s*✨/i,
     dayOff: /\b(day\s*off|off\s*day|no\s*work)\b/i,
