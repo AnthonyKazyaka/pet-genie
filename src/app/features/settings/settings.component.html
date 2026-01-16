@@ -44,16 +44,17 @@
                 @if (!isConnected()) {
                   <div class="connect-section">
                     <mat-form-field appearance="outline" class="full-width">
-                      <mat-label>Google Client ID</mat-label>
+                      <mat-label>Google Client ID (Optional - Default Provided)</mat-label>
                       <input
                         matInput
                         [(ngModel)]="googleClientId"
-                        placeholder="Enter your Google OAuth Client ID"
+                        placeholder="Using default Client ID"
                       />
-                      <mat-icon matSuffix matTooltip="Your OAuth 2.0 Client ID from Google Cloud Console">help_outline</mat-icon>
+                      <mat-icon matSuffix matTooltip="A default OAuth 2.0 Client ID is provided. You can override it with your own if needed.">help_outline</mat-icon>
                       <mat-hint>
+                        Default Client ID is pre-configured. 
                         <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">
-                          Get a Client ID from Google Cloud Console
+                          Or use your own
                           <mat-icon class="external-link">open_in_new</mat-icon>
                         </a>
                       </mat-hint>

@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -80,7 +81,8 @@ export class SettingsComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     // Load current settings
     const settings = this.dataService.settings();
-    this.googleClientId = settings.googleClientId;
+    // Use saved client ID, or fall back to environment default
+    this.googleClientId = settings.googleClientId || environment.googleClientId;
     this.thresholds = { ...settings.thresholds };
     this.originalThresholds = { ...settings.thresholds };
     this.includeTravelTime = settings.includeTravelTime;

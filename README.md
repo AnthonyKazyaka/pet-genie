@@ -49,13 +49,20 @@ The app will be available at `http://localhost:4200`
 
 ### Google Calendar Setup
 
+**Simple Setup (Recommended):**
+1. In Pet Genie, go to Settings → Calendar
+2. Click "Connect Google Calendar" (default Client ID is pre-configured)
+3. Authorize the app to access your calendar
+4. Select which calendars to sync
+
+**Advanced Setup (Use Your Own OAuth App):**
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create a new OAuth 2.0 Client ID (or use existing)
-3. Add `http://localhost:4200` to authorized JavaScript origins (for development)
-4. Add `https://anthonykazyaka.github.io` to authorized JavaScript origins (for production)
-5. Copy the Client ID
-6. In Pet Genie, go to Settings → Calendar and paste your Client ID
-7. Click "Connect Google Calendar" and authorize
+2. Create a new OAuth 2.0 Client ID
+3. Add authorized JavaScript origins:
+   - `http://localhost:4200` (for development)
+   - `https://anthonykazyaka.github.io` (for production)
+4. Copy your Client ID and paste it in Pet Genie Settings → Calendar
+5. Connect and authorize
 
 ### Firebase Configuration
 
