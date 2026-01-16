@@ -1,0 +1,249 @@
+<div class="client-detail-container">
+  <div class="client-header">
+    <button mat-icon-button [routerLink]="['/clients']">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>{{ isNew() ? 'New Client' : (isEditing() ? 'Edit Client' : client()?.name) }}</h1>
+    
+    <div class="header-actions">
+      @if (!isNew() && !isEditing()) {
+        <button mat-raised-button color="primary" (click)="isEditing.set(true)">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading client...</p>
+    </div>
+  }
+
+  @if (!isLoading()) {
+    <mat-tab-group>
+      <!-- Client Info Tab -->
+      <mat-tab label="Client Information">
+        <div class="tab-content">
+          <mat-card>
+            <mat-card-content>
+              @if (!isEditing()) {
+                <!-- View Mode -->
+                <div class="info-section">
+                  <h2>Contact Information</h2>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <mat-icon>person</mat-icon>
+                      <div>
+                        <strong>Name</strong>
+                        <p>{{ client()!.name }}</p>
+                      </div>
+                    </div>
+                    
+                    <div class="info-item">
+                      <mat-icon>location_on</mat-icon>
+                      <div>
+                        <strong>Address</strong>
+                        <p>{{ client()!.address || 'N/A' }}</p>
+                      </div>
+                    </div>
+
+                    @if (client()!.phone) {
+                      <div class="info-item">
+                        <mat-icon>phone</mat-icon>
+                        <div>
+                          <strong>Phone</strong>
+                          <p><a href="tel:{{ client()!.phone }}">{{ client()!.phone }}</a></p>
+                        </div>
+                      </div>
+                    }
+
+                    @if (client()!.email) {
+                      <div class="info-item">
+                        <mat-icon>email</mat-icon>
+                        <div>
+                          <strong>Email</strong>
+                          <p><a href="mailto:{{ client()!.email }}">{{ client()!.email }}</a></p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  @if (client()!.emergencyContact?.name) {
+                    <mat-divider></mat-divider>
+                    <h2>Emergency Contact</h2>
+                    <div class="info-grid">
+                      <div class="info-item">
+                        <mat-icon>person</mat-icon>
+                        <div>
+                          <strong>Name</strong>
+                          <p>{{ client()!.emergencyContact!.name }}</p>
+                        </div>
+                      </div>
+
+                      <div class="info-item">
+                        <mat-icon>phone</mat-icon>
+                        <div>
+                          <strong>Phone</strong>
+                          <p><a href="tel:{{ client()!.emergencyContact!.phone }}">{{ client()!.emergencyContact!.phone }}</a></p>
+                        </div>
+                      </div>
+
+                      @if (client()!.emergencyContact!.relationship) {
+                        <div class="info-item">
+                          <mat-icon>family_restroom</mat-icon>
+                          <div>
+                            <strong>Relationship</strong>
+                            <p>{{ client()!.emergencyContact!.relationship }}</p>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (client()!.notes) {
+                    <mat-divider></mat-divider>
+                    <h2>Notes</h2>
+                    <div class="notes-display">
+                      <p>{{ client()!.notes }}</p>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <!-- Edit Mode -->
+                <form class="client-form" (ngSubmit)="saveClient()">
+                  <h2>Contact Information</h2>
+                  
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Client Name</mat-label>
+                    <mat-icon matPrefix>person</mat-icon>
+                    <input matInput [(ngModel)]="formData().name" name="name" required>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Address</mat-label>
+                    <mat-icon matPrefix>location_on</mat-icon>
+                    <textarea matInput [(ngModel)]="formData().address" name="address" rows="2"></textarea>
+                  </mat-form-field>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Phone</mat-label>
+                      <mat-icon matPrefix>phone</mat-icon>
+                      <input matInput [(ngModel)]="formData().phone" name="phone" type="tel">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Email</mat-label>
+                      <mat-icon matPrefix>email</mat-icon>
+                      <input matInput [(ngModel)]="formData().email" name="email" type="email">
+                    </mat-form-field>
+                  </div>
+
+                  <mat-divider></mat-divider>
+
+                  <h2>Emergency Contact</h2>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Emergency Contact Name</mat-label>
+                    <mat-icon matPrefix>person</mat-icon>
+                    <input matInput [ngModel]="formData().emergencyContact?.name" (ngModelChange)="updateEmergencyContact('name', $event)" name="emergencyName">
+                  </mat-form-field>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Emergency Contact Phone</mat-label>
+                      <mat-icon matPrefix>phone</mat-icon>
+                      <input matInput [ngModel]="formData().emergencyContact?.phone" (ngModelChange)="updateEmergencyContact('phone', $event)" name="emergencyPhone" type="tel">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Relationship</mat-label>
+                      <mat-icon matPrefix>family_restroom</mat-icon>
+                      <input matInput [ngModel]="formData().emergencyContact?.relationship" (ngModelChange)="updateEmergencyContact('relationship', $event)" name="emergencyRelationship">
+                    </mat-form-field>
+                  </div>
+
+                  <mat-divider></mat-divider>
+
+                  <h2>Notes</h2>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Client Notes</mat-label>
+                    <textarea matInput [(ngModel)]="formData().notes" name="notes" rows="4" placeholder="Any important information about the client..."></textarea>
+                  </mat-form-field>
+
+                  <div class="form-actions">
+                    <button mat-raised-button color="primary" type="submit">
+                      <mat-icon>save</mat-icon>
+                      {{ isNew() ? 'Create Client' : 'Save Changes' }}
+                    </button>
+                    <button mat-button type="button" (click)="cancelEdit()">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Pets Tab -->
+      @if (!isNew()) {
+        <mat-tab label="Pets ({{ pets().length }})">
+          <div class="tab-content">
+            <div class="pets-header">
+              <button mat-raised-button color="primary" [routerLink]="['/clients', client()!.id, 'pets', 'new']">
+                <mat-icon>add</mat-icon>
+                Add Pet
+              </button>
+            </div>
+
+            @if (pets().length === 0) {
+              <mat-card>
+                <mat-card-content>
+                  <div class="empty-pets">
+                    <mat-icon>pets</mat-icon>
+                    <p>No pets yet</p>
+                    <button mat-raised-button color="primary" [routerLink]="['/clients', client()!.id, 'pets', 'new']">
+                      Add First Pet
+                    </button>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            } @else {
+              <mat-card>
+                <mat-list>
+                  @for (pet of pets(); track pet.id) {
+                    <mat-list-item>
+                      <mat-icon matListItemIcon>pets</mat-icon>
+                      <div matListItemTitle>{{ pet.name }}</div>
+                      <div matListItemLine>{{ pet.species }} @if (pet.breed) { - {{ pet.breed }} }</div>
+                      <div matListItemMeta class="pet-actions">
+                        <button mat-icon-button [routerLink]="['/clients', client()!.id, 'pets', pet.id]">
+                          <mat-icon>visibility</mat-icon>
+                        </button>
+                        <button mat-icon-button [routerLink]="['/clients', client()!.id, 'pets', pet.id, 'edit']">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                        <button mat-icon-button color="warn" (click)="deletePet(pet)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </div>
+                    </mat-list-item>
+                    @if (pet !== pets()[pets().length - 1]) {
+                      <mat-divider></mat-divider>
+                    }
+                  }
+                </mat-list>
+              </mat-card>
+            }
+          </div>
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+</div>

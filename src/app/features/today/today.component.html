@@ -1,0 +1,147 @@
+<div class="today-container">
+  <div class="today-header">
+    <h1>Today's Visits</h1>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="loadTodayVisits()" [disabled]="isLoading()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Not connected state -->
+  @if (!isConnected()) {
+    <mat-card class="connection-card">
+      <mat-card-content>
+        <app-empty-state
+          icon="cloud_off"
+          title="Calendar Not Connected"
+          message="Connect to Google Calendar to see today's visits"
+        >
+          <button mat-raised-button color="primary" (click)="connectCalendar()">
+            <mat-icon>link</mat-icon>
+            Connect Calendar
+          </button>
+        </app-empty-state>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading today's visits...</p>
+    </div>
+  }
+
+  <!-- Empty state -->
+  @if (!isLoading() && isConnected() && visits().length === 0) {
+    <mat-card class="empty-card">
+      <mat-card-content>
+        <app-empty-state
+          icon="event_available"
+          title="No Visits Today"
+          message="You have no scheduled visits for today. Enjoy your day off!"
+        />
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Visits list -->
+  @if (!isLoading() && isConnected() && visits().length > 0) {
+    <div class="visits-list">
+      @for (visit of visits(); track visit.event.id) {
+        <mat-card class="visit-card" [class.completed]="visit.displayStatus === 'completed'" [class.in-progress]="visit.displayStatus === 'in-progress'">
+          <mat-card-header>
+            <div class="visit-time">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ formatTime(visit.event.start) }}</span>
+            </div>
+            <mat-chip [color]="getStatusColor(visit.displayStatus)" highlighted>
+              {{ visit.displayStatus }}
+            </mat-chip>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="visit-info">
+              <div class="client-name-row">
+                <h3>{{ visit.clientName }}</h3>
+                @if (visit.linkedClient) {
+                  <mat-icon class="linked-icon" matTooltip="Client linked">link</mat-icon>
+                }
+              </div>
+              <p class="service-type">
+                <mat-icon>pets</mat-icon>
+                {{ visit.serviceType }}
+              </p>
+
+              @if (visit.petNames.length > 0) {
+                <p class="pet-names">
+                  <mat-icon>pets</mat-icon>
+                  <span>{{ visit.petNames.join(', ') }}</span>
+                </p>
+              }
+              
+              @if (visit.event.location) {
+                <p class="location">
+                  <mat-icon>location_on</mat-icon>
+                  {{ visit.event.location }}
+                </p>
+              }
+
+              @if (visit.visitRecord?.notes) {
+                <div class="visit-notes">
+                  <mat-icon>note</mat-icon>
+                  <p>{{ visit.visitRecord?.notes }}</p>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <!-- No visit record yet -->
+            @if (!visit.visitRecord) {
+              <button mat-raised-button color="primary" (click)="createVisit(visit)">
+                <mat-icon>add</mat-icon>
+                Create Visit
+              </button>
+            }
+
+            <!-- Visit record exists -->
+            @if (visit.visitRecord) {
+              <!-- Link client if not linked -->
+              @if (!visit.visitRecord.clientId) {
+                <button mat-stroked-button color="primary" (click)="linkClient(visit)">
+                  <mat-icon>link</mat-icon>
+                  Link Client
+                </button>
+              }
+
+              @if (visit.displayStatus === 'scheduled') {
+                <button mat-raised-button color="accent" (click)="checkIn(visit)">
+                  <mat-icon>login</mat-icon>
+                  Check In
+                </button>
+              }
+
+              @if (visit.displayStatus === 'in-progress') {
+                <button mat-raised-button color="primary" (click)="checkOut(visit)">
+                  <mat-icon>logout</mat-icon>
+                  Complete Visit
+                </button>
+              }
+
+              @if (visit.displayStatus === 'completed') {
+                <button mat-button [routerLink]="['/visit', visit.visitRecord.id]">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+              }
+            }
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,128 @@
+<div class="clients-container">
+  <div class="clients-header">
+    <h1>Clients</h1>
+    <div class="header-actions">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search clients</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="searchQuery" placeholder="Search by name or address">
+      </mat-form-field>
+      <button mat-raised-button color="primary" [routerLink]="['/clients/new']">
+        <mat-icon>add</mat-icon>
+        Add Client
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <app-skeleton-loader type="list" [count]="5"></app-skeleton-loader>
+  }
+
+  @if (!isLoading() && clients().length === 0) {
+    <mat-card class="empty-card">
+      <mat-card-content>
+        <app-empty-state
+          icon="person_off"
+          title="No Clients Yet"
+          message="Add your first client to start tracking visits"
+        >
+          <button mat-raised-button color="primary" [routerLink]="['/clients/new']">
+            <mat-icon>add</mat-icon>
+            Add Client
+          </button>
+        </app-empty-state>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (!isLoading() && filteredClients().length > 0) {
+    <mat-card>
+      <table mat-table [dataSource]="filteredClients()" class="clients-table">
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let client">
+            <div class="client-name">
+              <mat-icon>person</mat-icon>
+              <strong>{{ client.name }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Address Column -->
+        <ng-container matColumnDef="address">
+          <th mat-header-cell *matHeaderCellDef>Address</th>
+          <td mat-cell *matCellDef="let client">
+            <div class="address">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ client.address || 'N/A' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Phone Column -->
+        <ng-container matColumnDef="phone">
+          <th mat-header-cell *matHeaderCellDef>Phone</th>
+          <td mat-cell *matCellDef="let client">
+            @if (client.phone) {
+              <a href="tel:{{ client.phone }}" class="phone-link">
+                <mat-icon>phone</mat-icon>
+                {{ client.phone }}
+              </a>
+            } @else {
+              <span class="no-data">N/A</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Pets Column -->
+        <ng-container matColumnDef="pets">
+          <th mat-header-cell *matHeaderCellDef>Pets</th>
+          <td mat-cell *matCellDef="let client">
+            <div class="pets-info">
+              <mat-icon>pets</mat-icon>
+              @if (getPetsForClient(client.id).length > 0) {
+                <span>{{ getPetsForClient(client.id).length }} {{ getPetsForClient(client.id).length === 1 ? 'pet' : 'pets' }}</span>
+              } @else {
+                <span class="no-data">No pets</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let client">
+            <div class="actions">
+              <button mat-icon-button [routerLink]="['/clients', client.id]" matTooltip="View details">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button [routerLink]="['/clients', client.id, 'edit']" matTooltip="Edit client">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteClient(client)" matTooltip="Delete client">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </mat-card>
+  }
+
+  @if (!isLoading() && clients().length > 0 && filteredClients().length === 0) {
+    <mat-card class="empty-card">
+      <mat-card-content>
+        <app-empty-state
+          icon="search_off"
+          title="No Results Found"
+          message="No clients match your search query"
+        />
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

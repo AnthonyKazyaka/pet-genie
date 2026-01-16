@@ -14,6 +14,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'today',
+    loadComponent: () =>
+      import('./features/today/today.component').then(
+        (m) => m.TodayComponent
+      ),
+  },
+  {
+    path: 'visit/:id',
+    loadComponent: () =>
+      import('./features/today/visit-detail.component').then(
+        (m) => m.VisitDetailComponent
+      ),
+  },
+  {
     path: 'calendar',
     loadComponent: () =>
       import('./features/calendar/calendar.component').then(
@@ -39,6 +53,20 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/export/export.component').then(
         (m) => m.ExportComponent
+      ),
+  },
+  {
+    path: 'clients',
+    loadComponent: () =>
+      import('./features/clients/clients.component').then(
+        (m) => m.ClientsComponent
+      ),
+  },
+  {
+    path: 'clients/:id',
+    loadComponent: () =>
+      import('./features/clients/client-detail.component').then(
+        (m) => m.ClientDetailComponent
       ),
   },
   {

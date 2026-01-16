@@ -9,3 +9,6 @@ export * from './settings.model';
 export * from './workload.model';
 export * from './calendar.model';
 export * from './analytics.model';
+export * from './client.model';
+export * from './pet.model';
+export * from './visit-record.model';

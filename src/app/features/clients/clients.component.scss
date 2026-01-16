@@ -1,0 +1,163 @@
+.clients-container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.clients-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+
+  h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 500;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+
+    .search-field {
+      min-width: 300px;
+    }
+  }
+}
+
+.empty-card {
+  margin: 2rem 0;
+}
+
+.clients-table {
+  width: 100%;
+
+  th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--surface-variant);
+  }
+
+  td {
+    padding: 1rem 0.5rem;
+  }
+
+  .client-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    mat-icon {
+      color: var(--primary-color);
+    }
+
+    strong {
+      font-weight: 500;
+      font-size: 1rem;
+    }
+  }
+
+  .address {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+
+    mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      color: var(--text-secondary);
+    }
+  }
+
+  .phone-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+
+    mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    &:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+  }
+
+  .pets-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      color: var(--accent-color);
+    }
+
+    span {
+      font-size: 0.9rem;
+    }
+  }
+
+  .no-data {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .clients-container {
+    padding: 1rem;
+  }
+
+  .clients-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .header-actions {
+      width: 100%;
+      flex-direction: column;
+
+      .search-field {
+        width: 100%;
+        min-width: unset;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+
+  /* Hide some columns on mobile */
+  .clients-table {
+    .mat-column-address,
+    .mat-column-phone {
+      display: none;
+    }
+  }
+}

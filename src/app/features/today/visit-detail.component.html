@@ -1,0 +1,317 @@
+<div class="visit-detail-container">
+  <div class="visit-header">
+    <button mat-icon-button [routerLink]="['/today']">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Visit Details</h1>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading visit details...</p>
+    </div>
+  }
+
+  @if (!isLoading() && visitRecord()) {
+    <div class="visit-content">
+      <!-- Status Card -->
+      <mat-card class="status-card">
+        <mat-card-header>
+          <h2>Status</h2>
+          <mat-chip [color]="getStatusColor(visitRecord()!.status)" highlighted>
+            {{ visitRecord()!.status }}
+          </mat-chip>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="status-info">
+            <div class="info-row">
+              <mat-icon>event</mat-icon>
+              <div>
+                <strong>Created:</strong>
+                <span>{{ formatDateTime(visitRecord()!.createdAt) }}</span>
+              </div>
+            </div>
+
+            @if (visitRecord()!.checkInAt) {
+              <div class="info-row">
+                <mat-icon>login</mat-icon>
+                <div>
+                  <strong>Checked In:</strong>
+                  <span>{{ formatDateTime(visitRecord()!.checkInAt) }}</span>
+                </div>
+              </div>
+            }
+
+            @if (visitRecord()!.checkOutAt) {
+              <div class="info-row">
+                <mat-icon>logout</mat-icon>
+                <div>
+                  <strong>Checked Out:</strong>
+                  <span>{{ formatDateTime(visitRecord()!.checkOutAt) }}</span>
+                </div>
+              </div>
+            }
+
+            @if (visitRecord()!.checkInAt && visitRecord()!.checkOutAt) {
+              <div class="info-row">
+                <mat-icon>schedule</mat-icon>
+                <div>
+                  <strong>Duration:</strong>
+                  <span>{{ formatDuration(visitRecord()!.checkInAt, visitRecord()!.checkOutAt) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="status-actions">
+            @if (visitRecord()!.status === 'scheduled') {
+              <button mat-raised-button color="accent" (click)="checkIn()">
+                <mat-icon>login</mat-icon>
+                Check In
+              </button>
+            }
+
+            @if (visitRecord()!.status === 'in-progress') {
+              <button mat-raised-button color="primary" (click)="checkOut()">
+                <mat-icon>logout</mat-icon>
+                Complete Visit
+              </button>
+            }
+
+            @if (visitRecord()!.status === 'completed' && client()) {
+              <button mat-raised-button (click)="generateAndCopySummary()">
+                <mat-icon>summarize</mat-icon>
+                Generate Summary
+              </button>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Event Info Card -->
+      @if (event()) {
+        <mat-card class="event-card">
+          <mat-card-header>
+            <mat-icon>event</mat-icon>
+            <h2>Event Details</h2>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <h3>{{ event()!.title }}</h3>
+            
+            <div class="info-row">
+              <mat-icon>schedule</mat-icon>
+              <div>
+                <strong>Time:</strong>
+                <span>{{ formatTime(event()!.start) }} - {{ formatTime(event()!.end) }}</span>
+              </div>
+            </div>
+            
+            @if (event()!.location) {
+              <div class="info-row">
+                <mat-icon>location_on</mat-icon>
+                <div>
+                  <strong>Location:</strong>
+                  <span>{{ event()!.location }}</span>
+                </div>
+              </div>
+            }
+            
+            @if (event()!.description) {
+              <div class="event-description">
+                <mat-icon>description</mat-icon>
+                <p>{{ event()!.description }}</p>
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Client Info Card -->
+      <mat-card class="client-card">
+        <mat-card-header>
+          <mat-icon>person</mat-icon>
+          <h2>Client Information</h2>
+          @if (!client()) {
+            <button mat-stroked-button color="primary" (click)="linkClient()">
+              <mat-icon>link</mat-icon>
+              Link Client
+            </button>
+          } @else {
+            <button mat-stroked-button (click)="linkClient()">
+              <mat-icon>edit</mat-icon>
+              Change Client
+            </button>
+          }
+        </mat-card-header>
+        
+        @if (client()) {
+          <mat-card-content>
+            <h3>{{ client()!.name }}</h3>
+            
+            @if (client()!.address) {
+              <div class="info-row">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ client()!.address }}</span>
+              </div>
+            }
+
+            @if (client()!.phone) {
+              <div class="info-row">
+                <mat-icon>phone</mat-icon>
+                <a href="tel:{{ client()!.phone }}">{{ client()!.phone }}</a>
+              </div>
+            }
+
+            @if (client()!.email) {
+              <div class="info-row">
+                <mat-icon>email</mat-icon>
+                <a href="mailto:{{ client()!.email }}">{{ client()!.email }}</a>
+              </div>
+            }
+
+            @if (client()!.notes) {
+              <div class="client-notes">
+                <mat-icon>note</mat-icon>
+                <p>{{ client()!.notes }}</p>
+              </div>
+            }
+          </mat-card-content>
+        } @else {
+          <mat-card-content>
+            <p class="empty-state">No client linked yet. Link a client to see their information.</p>
+          </mat-card-content>
+        }
+      </mat-card>
+
+      <!-- Pets Card -->
+      @if (client()) {
+        <mat-card class="pets-card">
+          <mat-card-header>
+            <mat-icon>pets</mat-icon>
+            <h2>Pets</h2>
+            @if (!isEditingPets() && availablePets().length > 0) {
+              <button mat-icon-button (click)="isEditingPets.set(true)" matTooltip="Edit pet selection">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </mat-card-header>
+          
+          <mat-card-content>
+            @if (isEditingPets()) {
+              <!-- Pet Selection Mode -->
+              <p class="section-hint">Select pets for this visit:</p>
+              @for (pet of availablePets(); track pet.id) {
+                <div class="pet-checkbox-item">
+                  <mat-checkbox 
+                    [checked]="isPetSelected(pet.id)"
+                    (change)="togglePetSelection(pet.id)">
+                    <span class="pet-checkbox-label">
+                      <strong>{{ pet.name }}</strong>
+                      <span class="pet-type-inline">{{ pet.species }}@if (pet.breed) { - {{ pet.breed }}}</span>
+                    </span>
+                  </mat-checkbox>
+                </div>
+              } @empty {
+                <p class="no-pets">No pets registered for this client.</p>
+              }
+              
+              <div class="edit-actions">
+                <button mat-button (click)="cancelPetEditing()">Cancel</button>
+                <button mat-raised-button color="primary" (click)="savePetSelection()">
+                  Save Selection
+                </button>
+              </div>
+            } @else {
+              <!-- Display Mode -->
+              @if (pets().length > 0) {
+                @for (pet of pets(); track pet.id) {
+                  <div class="pet-item">
+                    <h3>{{ pet.name }}</h3>
+                    <p class="pet-type">{{ pet.species }} @if (pet.breed) { - {{ pet.breed }} }</p>
+                    
+                    @if (pet.careNotes) {
+                      <p class="pet-notes">{{ pet.careNotes }}</p>
+                    }
+
+                    @if (pet.medications && pet.medications.length > 0) {
+                      <div class="medications">
+                        <strong>Medications:</strong>
+                        <ul>
+                          @for (med of pet.medications; track med.name) {
+                            <li>{{ med.name }} - {{ med.dosage }} ({{ med.frequency }})</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+
+                    @if (pet !== pets()[pets().length - 1]) {
+                      <mat-divider></mat-divider>
+                    }
+                  </div>
+                }
+              } @else if (availablePets().length > 0) {
+                <p class="no-pets-selected">No pets selected for this visit.</p>
+                <button mat-stroked-button color="primary" (click)="isEditingPets.set(true)">
+                  <mat-icon>add</mat-icon>
+                  Select Pets
+                </button>
+              } @else {
+                <p class="no-pets">No pets registered for this client.</p>
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Notes Card -->
+      <mat-card class="notes-card">
+        <mat-card-header>
+          <mat-icon>edit_note</mat-icon>
+          <h2>Visit Notes</h2>
+          @if (!isEditingNotes()) {
+            <button mat-icon-button (click)="isEditingNotes.set(true)">
+              <mat-icon>edit</mat-icon>
+            </button>
+          }
+        </mat-card-header>
+        
+        <mat-card-content>
+          @if (!isEditingNotes()) {
+            <div class="notes-display">
+              @if (visitRecord()!.notes) {
+                <p>{{ visitRecord()!.notes }}</p>
+              } @else {
+                <p class="no-notes">No notes yet. Click edit to add notes.</p>
+              }
+            </div>
+          } @else {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Visit Notes</mat-label>
+              <textarea
+                matInput
+                [(ngModel)]="notesText"
+                rows="6"
+                placeholder="Add notes about the visit..."
+              ></textarea>
+            </mat-form-field>
+
+            <div class="notes-actions">
+              <button mat-raised-button color="primary" (click)="saveNotes()">
+                <mat-icon>save</mat-icon>
+                Save
+              </button>
+              <button mat-button (click)="cancelEditNotes()">
+                Cancel
+              </button>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

@@ -1,0 +1,101 @@
+<h2 mat-dialog-title>Link this visit to a client</h2>
+
+<mat-dialog-content>
+  <p class="helper-text">Pick the client for this visit. You only need to do this once.</p>
+
+  @if (!showCreateForm()) {
+    <!-- Search and Select -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Search clients</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [(ngModel)]="searchQuery" placeholder="Search clients…">
+    </mat-form-field>
+
+    <div class="client-list">
+      @if (filteredClients().length > 0) {
+        <mat-list>
+          @for (client of filteredClients(); track client.id) {
+            <mat-list-item 
+              (click)="selectClient(client.id)"
+              [class.selected]="selectedClientId() === client.id">
+              <mat-icon matListItemIcon>person</mat-icon>
+              <div matListItemTitle>{{ client.name }}</div>
+              <div matListItemLine>{{ client.address || 'No address' }}</div>
+              @if (selectedClientId() === client.id) {
+                <mat-icon matListItemMeta color="primary">check_circle</mat-icon>
+              }
+            </mat-list-item>
+            @if (client !== filteredClients()[filteredClients().length - 1]) {
+              <mat-divider></mat-divider>
+            }
+          }
+        </mat-list>
+      } @else {
+        <div class="empty-state">
+          <mat-icon>person_off</mat-icon>
+          <p>No clients found</p>
+        </div>
+      }
+    </div>
+
+    <mat-divider class="section-divider"></mat-divider>
+
+    <div class="or-section">
+      <span>or</span>
+    </div>
+
+    <button mat-stroked-button class="full-width" (click)="toggleCreateForm()">
+      <mat-icon>add</mat-icon>
+      Create new client
+    </button>
+  } @else {
+    <!-- Create New Client Form -->
+    <div class="create-form">
+      <div class="form-header">
+        <h3>New client</h3>
+        <button mat-icon-button (click)="toggleCreateForm()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Client Name</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput [(ngModel)]="newClientName" placeholder="Client name" required>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Address</mat-label>
+        <mat-icon matPrefix>location_on</mat-icon>
+        <textarea matInput [(ngModel)]="newClientAddress" rows="2" placeholder="Street address"></textarea>
+      </mat-form-field>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Phone</mat-label>
+          <mat-icon matPrefix>phone</mat-icon>
+          <input matInput [(ngModel)]="newClientPhone" type="tel" placeholder="Phone number">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <mat-icon matPrefix>email</mat-icon>
+          <input matInput [(ngModel)]="newClientEmail" type="email" placeholder="Email address">
+        </mat-form-field>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  @if (!showCreateForm()) {
+    <button mat-raised-button color="primary" (click)="confirmSelection()" [disabled]="!selectedClientId()">
+      Link Client
+    </button>
+  } @else {
+    <button mat-raised-button color="primary" (click)="createAndLink()" [disabled]="!newClientName().trim()">
+      Create & Link
+    </button>
+  }
+</mat-dialog-actions>

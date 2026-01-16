@@ -215,7 +215,9 @@ export class AppShellComponent {
 
   navItems: NavItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
+    { label: 'Today', route: '/today', icon: 'today' },
     { label: 'Calendar', route: '/calendar', icon: 'calendar_month' },
+    { label: 'Clients', route: '/clients', icon: 'people' },
     { label: 'Templates', route: '/templates', icon: 'description' },
     { label: 'Analytics', route: '/analytics', icon: 'analytics' },
     { label: 'Export', route: '/export', icon: 'file_upload' },
@@ -224,7 +226,9 @@ export class AppShellComponent {
 
   mobileNavItems: NavItem[] = [
     { label: 'Home', route: '/dashboard', icon: 'home' },
+    { label: 'Today', route: '/today', icon: 'today' },
     { label: 'Calendar', route: '/calendar', icon: 'calendar_month' },
+    { label: 'Clients', route: '/clients', icon: 'people' },
     { label: 'Templates', route: '/templates', icon: 'description' },
     { label: 'Analytics', route: '/analytics', icon: 'analytics' },
     { label: 'Export', route: '/export', icon: 'file_upload' },
@@ -236,7 +240,9 @@ export class AppShellComponent {
     
     const routeLabels: Record<string, string> = {
       '/dashboard': 'Dashboard',
+      '/today': 'Today',
       '/calendar': 'Calendar',
+      '/clients': 'Clients',
       '/templates': 'Templates',
       '/analytics': 'Analytics',
       '/export': 'Export',

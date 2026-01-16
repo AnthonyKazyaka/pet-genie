@@ -511,6 +511,49 @@ export class GoogleCalendarService {
   }
 
   /**
+   * Fetch a single event by ID from a calendar
+   */
+  getEventById(calendarId: string, eventId: string): Observable<CalendarEvent | null> {
+    if (!this.isSignedIn()) {
+      return throwError(() => new Error('Not signed in'));
+    }
+
+    if (!this.gapiInitialized || !this.getGapi()?.client?.calendar) {
+      return throwError(() => new Error('Google API not initialized'));
+    }
+
+    return from(
+      this.getGapi().client.calendar.events.get({
+        calendarId: calendarId,
+        eventId: eventId,
+      })
+    ).pipe(
+      map((response: any) => {
+        const item: RawGoogleCalendarEvent = response.result;
+        return this.parseGoogleEvent(item, calendarId);
+      }),
+      catchError((error) => {
+        console.error(`Failed to fetch event ${eventId}:`, error);
+        // Return null if event not found
+        if (error.status === 404) {
+          return of(null);
+        }
+        // If 401, token is invalid
+        if (error.status === 401 || error.result?.error?.code === 401) {
+          this.clearStoredToken();
+          this.authStateSignal.update((state) => ({
+            ...state,
+            accessToken: null,
+            tokenExpiry: null,
+            isSignedIn: false,
+          }));
+        }
+        return of(null);
+      })
+    );
+  }
+
+  /**
    * Check if token needs refresh
    */
   needsTokenRefresh(): boolean {
