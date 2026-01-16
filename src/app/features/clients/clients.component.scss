@@ -37,8 +37,8 @@
 
   th {
     font-weight: 600;
-    color: var(--text-secondary);
-    background-color: var(--surface-variant);
+    color: var(--on-surface-variant);
+    background-color: var(--surface-container-high);
   }
 
   td {
@@ -51,7 +51,7 @@
     gap: 0.5rem;
 
     mat-icon {
-      color: var(--primary-color);
+      color: var(--primary);
     }
 
     strong {
@@ -64,14 +64,14 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-size: 0.9rem;
 
     mat-icon {
       font-size: 1.125rem;
       width: 1.125rem;
       height: 1.125rem;
-      color: var(--text-secondary);
+      color: var(--on-surface-variant);
     }
   }
 
@@ -79,7 +79,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--primary-color);
+    color: var(--primary);
     text-decoration: none;
     transition: color 0.2s;
 
@@ -90,7 +90,7 @@
     }
 
     &:hover {
-      color: var(--primary-dark);
+      color: var(--primary-container);
       text-decoration: underline;
     }
   }
@@ -104,7 +104,7 @@
       font-size: 1.125rem;
       width: 1.125rem;
       height: 1.125rem;
-      color: var(--accent-color);
+      color: var(--secondary);
     }
 
     span {
@@ -113,7 +113,7 @@
   }
 
   .no-data {
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-style: italic;
     font-size: 0.9rem;
   }

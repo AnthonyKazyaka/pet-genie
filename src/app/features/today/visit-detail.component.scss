@@ -26,7 +26,7 @@
   gap: 1rem;
 
   p {
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     margin: 0;
   }
 }
@@ -43,11 +43,11 @@ mat-card {
     align-items: center;
     gap: 0.5rem;
     padding: 1rem 1.5rem;
-    background-color: var(--surface-variant);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--surface-container-high);
+    border-bottom: 1px solid var(--outline-variant);
 
     mat-icon {
-      color: var(--primary-color);
+      color: var(--primary);
     }
 
     h2 {
@@ -77,7 +77,7 @@ mat-card {
 
       mat-icon {
         flex-shrink: 0;
-        color: var(--primary-color);
+        color: var(--primary);
       }
 
       div {
@@ -87,13 +87,13 @@ mat-card {
 
         strong {
           font-weight: 500;
-          color: var(--text-secondary);
+          color: var(--on-surface-variant);
           font-size: 0.875rem;
         }
 
         span {
           font-size: 1rem;
-          color: var(--text-primary);
+          color: var(--on-surface);
         }
       }
     }
@@ -124,7 +124,7 @@ mat-card {
 
     mat-icon {
       flex-shrink: 0;
-      color: var(--primary-color);
+      color: var(--primary);
     }
 
     div {
@@ -134,13 +134,13 @@ mat-card {
 
       strong {
         font-weight: 500;
-        color: var(--text-secondary);
+        color: var(--on-surface-variant);
         font-size: 0.875rem;
       }
 
       span {
         font-size: 1rem;
-        color: var(--text-primary);
+        color: var(--on-surface);
       }
     }
   }
@@ -148,19 +148,19 @@ mat-card {
   .event-description {
     margin-top: 1rem;
     padding: 1rem;
-    background-color: var(--surface-variant);
+    background-color: var(--surface-container-high);
     border-radius: 8px;
     display: flex;
     gap: 0.75rem;
 
     mat-icon {
       flex-shrink: 0;
-      color: var(--primary-color);
+      color: var(--primary);
     }
 
     p {
       margin: 0;
-      color: var(--text-primary);
+      color: var(--on-surface);
       line-height: 1.6;
       white-space: pre-wrap;
     }
@@ -182,18 +182,18 @@ mat-card {
 
     mat-icon {
       flex-shrink: 0;
-      color: var(--primary-color);
+      color: var(--primary);
       font-size: 1.25rem;
       width: 1.25rem;
       height: 1.25rem;
     }
 
     span, a {
-      color: var(--text-primary);
+      color: var(--on-surface);
       text-decoration: none;
 
       &:hover {
-        color: var(--primary-color);
+        color: var(--primary);
       }
     }
   }
@@ -201,19 +201,19 @@ mat-card {
   .client-notes {
     margin-top: 1.5rem;
     padding: 1rem;
-    background-color: var(--surface-variant);
+    background-color: var(--surface-container-high);
     border-radius: 8px;
     display: flex;
     gap: 0.75rem;
 
     mat-icon {
       flex-shrink: 0;
-      color: var(--primary-color);
+      color: var(--primary);
     }
 
     p {
       margin: 0;
-      color: var(--text-primary);
+      color: var(--on-surface);
       line-height: 1.6;
     }
   }
@@ -222,7 +222,7 @@ mat-card {
 .pets-card {
   .section-hint {
     margin: 0 0 1rem 0;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-size: 0.9rem;
   }
 
@@ -240,13 +240,13 @@ mat-card {
 
       .pet-type-inline {
         font-size: 0.85rem;
-        color: var(--text-secondary);
+        color: var(--on-surface-variant);
       }
     }
   }
 
   .no-pets, .no-pets-selected {
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-style: italic;
     margin: 0 0 1rem 0;
   }
@@ -277,14 +277,14 @@ mat-card {
 
     .pet-type {
       margin: 0 0 0.75rem 0;
-      color: var(--text-secondary);
+      color: var(--on-surface-variant);
       font-size: 0.9rem;
     }
 
     .pet-notes {
       margin: 0.75rem 0;
       padding: 0.75rem;
-      background-color: var(--surface-variant);
+      background-color: var(--surface-container-high);
       border-radius: 6px;
       font-size: 0.9rem;
       line-height: 1.5;
@@ -296,7 +296,7 @@ mat-card {
       strong {
         display: block;
         margin-bottom: 0.5rem;
-        color: var(--text-secondary);
+        color: var(--on-surface-variant);
         font-size: 0.9rem;
       }
 
@@ -328,7 +328,7 @@ mat-card {
       white-space: pre-wrap;
 
       &.no-notes {
-        color: var(--text-secondary);
+        color: var(--on-surface-variant);
         font-style: italic;
       }
     }

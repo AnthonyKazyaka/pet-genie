@@ -32,7 +32,7 @@
   gap: 1rem;
 
   p {
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     margin: 0;
   }
 }
@@ -46,7 +46,7 @@
     margin: 0 0 1.5rem 0;
     font-size: 1.25rem;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
   }
 
   mat-divider {
@@ -65,7 +65,7 @@
 
       mat-icon {
         flex-shrink: 0;
-        color: var(--primary-color);
+        color: var(--primary);
         margin-top: 0.25rem;
       }
 
@@ -75,7 +75,7 @@
         strong {
           display: block;
           font-weight: 500;
-          color: var(--text-secondary);
+          color: var(--on-surface-variant);
           font-size: 0.875rem;
           margin-bottom: 0.25rem;
         }
@@ -83,11 +83,11 @@
         p {
           margin: 0;
           font-size: 1rem;
-          color: var(--text-primary);
+          color: var(--on-surface);
           line-height: 1.5;
 
           a {
-            color: var(--primary-color);
+            color: var(--primary);
             text-decoration: none;
 
             &:hover {
@@ -101,7 +101,7 @@
 
   .notes-display {
     padding: 1rem;
-    background-color: var(--surface-variant);
+    background-color: var(--surface-container-high);
     border-radius: 8px;
 
     p {
@@ -117,7 +117,7 @@
     margin: 1.5rem 0 1rem 0;
     font-size: 1.25rem;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
 
     &:first-child {
       margin-top: 0;
@@ -143,7 +143,7 @@
     gap: 1rem;
     margin-top: 2rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--outline-variant);
   }
 }
 
@@ -189,12 +189,12 @@
     font-size: 4rem;
     width: 4rem;
     height: 4rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
   }
 
   p {
     margin: 0;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-size: 1.1rem;
   }
 }

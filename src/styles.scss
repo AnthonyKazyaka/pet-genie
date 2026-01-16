@@ -9,6 +9,31 @@
 // SCSS Variables
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// Color System Documentation
+// -----------------------------------------------------------------------------
+// This application uses a Material Design 3 inspired color system with proper
+// theming support for both light and dark modes.
+//
+// Color Naming Convention:
+// - Base colors: Primary color names (e.g., $primary, $secondary)
+// - Container colors: Used for backgrounds (e.g., $primary-container)
+// - On-colors: Text/icon colors for corresponding backgrounds (e.g., $on-primary)
+// - Surface colors: Different elevation levels for surfaces
+// - Outline colors: Border and divider colors
+//
+// Theme Support:
+// - All colors are mapped to CSS custom properties (--variable-name)
+// - Dark mode is implemented via [data-theme="dark"] attribute
+// - Light mode uses softer colors with high contrast text
+// - Dark mode uses brighter accent colors with adapted contrast
+//
+// Contrast Guidelines:
+// - Always use on-* variables for text on colored backgrounds
+// - Workload indicators have dedicated on-workload-* variables
+// - Surface variants provide different emphasis levels
+// -----------------------------------------------------------------------------
+
 // Primary colors - Indigo
 $primary: #4F46E5;
 $primary-container: #E0E7FF;
@@ -221,6 +246,12 @@ $radius-full: 9999px;
   --workload-busy: #{$workload-busy};
   --workload-high: #{$workload-high};
   --workload-burnout: #{$workload-burnout};
+  
+  // Workload on-colors (text colors for accessibility)
+  --on-workload-comfortable: #FFFFFF;
+  --on-workload-busy: #000000;
+  --on-workload-high: #FFFFFF;
+  --on-workload-burnout: #FFFFFF;
 
   // Shadows
   --shadow-sm: #{$shadow-sm};
@@ -275,6 +306,18 @@ $radius-full: 9999px;
   // Outline
   --outline: #{$outline-dark};
   --outline-variant: #{$outline-variant-dark};
+
+  // Workload colors adjusted for dark mode (brighter for visibility)
+  --workload-comfortable: #34D399;
+  --workload-busy: #FCD34D;
+  --workload-high: #FB923C;
+  --workload-burnout: #F87171;
+  
+  // Workload on-colors for dark mode
+  --on-workload-comfortable: #000000;
+  --on-workload-busy: #000000;
+  --on-workload-high: #000000;
+  --on-workload-burnout: #000000;
 
   // Focus ring for dark mode
   --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.4);
@@ -670,18 +713,22 @@ body {
 
 .workload-bg-comfortable {
   background-color: var(--workload-comfortable) !important;
+  color: var(--on-workload-comfortable) !important;
 }
 
 .workload-bg-busy {
   background-color: var(--workload-busy) !important;
+  color: var(--on-workload-busy) !important;
 }
 
 .workload-bg-high {
   background-color: var(--workload-high) !important;
+  color: var(--on-workload-high) !important;
 }
 
 .workload-bg-burnout {
   background-color: var(--workload-burnout) !important;
+  color: var(--on-workload-burnout) !important;
 }
 
 // =============================================================================
