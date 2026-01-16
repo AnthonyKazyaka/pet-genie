@@ -253,6 +253,11 @@ $radius-full: 9999px;
   --on-workload-high: #FFFFFF;
   --on-workload-burnout: #FFFFFF;
 
+  // Header/Toolbar colors (for primary-colored headers)
+  --header-on-primary: rgba(255, 255, 255, 0.95);
+  --header-on-primary-muted: rgba(255, 255, 255, 0.7);
+  --header-surface-tint: rgba(255, 255, 255, 0.1);
+
   // Shadows
   --shadow-sm: #{$shadow-sm};
   --shadow-md: #{$shadow-md};
@@ -318,6 +323,11 @@ $radius-full: 9999px;
   --on-workload-busy: #000000;
   --on-workload-high: #000000;
   --on-workload-burnout: #000000;
+
+  // Header/Toolbar colors for dark mode (surface-container based)
+  --header-on-primary: var(--on-surface);
+  --header-on-primary-muted: var(--on-surface-variant);
+  --header-surface-tint: rgba(255, 255, 255, 0.05);
 
   // Focus ring for dark mode
   --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.4);

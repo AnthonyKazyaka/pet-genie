@@ -65,9 +65,9 @@
   position: relative;
 
   span {
-    background: var(--background);
+    background: var(--surface-container-lowest);
     padding: 0 1rem;
-    color: var(--text-secondary);
+    color: var(--on-surface-variant);
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
