@@ -1,20 +1,140 @@
-## AWS Amplify Angular.js Starter Template
+## Pet Genie - Pet Sitting Business Manager
 
-This repository provides a starter template for creating applications using Angular.js and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
+A comprehensive Angular application for managing pet sitting appointments, workload analytics, and business operations. Built with Angular 17, Firebase, and Google Calendar integration.
 
 ## Overview
 
-This template equips you with a foundational Angular.js application integrated with AWS Amplify, streamlined for scalability and performance. It is ideal for developers looking to jumpstart their project with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
+Pet Genie helps pet sitting professionals manage their business by:
+- Syncing appointments from Google Calendar
+- Analyzing workload and capacity
+- Managing clients and pets
+- Exporting visit records for invoicing
+- Tracking business analytics
 
 ## Features
 
-- **Authentication**: Setup with Amazon Cognito for secure user authentication.
-- **API**: Ready-to-use GraphQL endpoint with AWS AppSync.
-- **Database**: Real-time database powered by Amazon DynamoDB.
+- **Google Calendar Integration**: Connect your Google Calendar to import pet sitting appointments
+- **Firebase/Firestore Backend**: Secure, scalable data storage for clients, pets, and visit records
+- **Workload Analytics**: Visual dashboard showing daily/weekly workload with customizable thresholds
+- **Client Management**: Track client information, pets, and visit history
+- **Export Tools**: Generate invoices and reports from visit records
+- **Responsive Design**: Works on desktop and mobile devices
+- **Dark/Light Theme**: Customizable appearance
 
-## Deploying to AWS
+## Setup
 
-For detailed instructions on deploying your application, refer to the [deployment section](https://docs.amplify.aws/angular/start/quickstart/#deploy-a-fullstack-app-to-aws) of our documentation.
+### Prerequisites
+- Node.js 18 or higher
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/AnthonyKazyaka/pet-genie.git
+cd pet-genie
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm start
+```
+
+The app will be available at `http://localhost:4200`
+
+### Google Calendar Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a new OAuth 2.0 Client ID (or use existing)
+3. Add `http://localhost:4200` to authorized JavaScript origins (for development)
+4. Add `https://anthonykazyaka.github.io` to authorized JavaScript origins (for production)
+5. Copy the Client ID
+6. In Pet Genie, go to Settings → Calendar and paste your Client ID
+7. Click "Connect Google Calendar" and authorize
+
+### Firebase Configuration
+
+Firebase is pre-configured in this application. The configuration is in:
+- `src/environments/environment.ts` (production)
+- `src/environments/environment.development.ts` (development)
+
+Firebase services used:
+- **Firestore**: Document database for clients, pets, and visit records
+- **Analytics**: Usage tracking (production only)
+
+## Deployment
+
+### GitHub Pages
+
+The application is automatically deployed to GitHub Pages via GitHub Actions when you push to the `main` branch.
+
+View the live app at: `https://anthonykazyaka.github.io/pet-genie/`
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+Build artifacts will be in `dist/amplify-angular-template/browser/`
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── core/          # Services, guards, utilities
+│   ├── features/      # Feature modules (calendar, clients, analytics, etc.)
+│   ├── layout/        # App shell and layout components
+│   ├── models/        # TypeScript interfaces and models
+│   └── shared/        # Shared components and dialogs
+├── assets/            # Static assets
+├── environments/      # Environment configurations
+└── styles/            # Global styles and themes
+```
+
+## Available Scripts
+
+- `npm start` - Start development server
+- `npm run build` - Build for production
+- `npm test` - Run unit tests
+- `npm run watch` - Build in watch mode
+
+## Technologies
+
+- **Angular 17** - Frontend framework
+- **Angular Material** - UI component library
+- **Firebase/Firestore** - Backend database
+- **Google Calendar API** - Calendar integration
+- **RxJS** - Reactive programming
+- **date-fns** - Date manipulation
+- **Chart.js** - Analytics charts
+
+## Configuration
+
+### Workload Thresholds
+
+Customize your workload comfort levels in Settings → Workload:
+- **Comfortable**: Light workload (default: up to 4 hours/day, 20 hours/week)
+- **Busy**: Moderate workload (default: 4-6 hours/day, 20-30 hours/week)
+- **High**: Heavy workload (default: 6-8 hours/day, 30-40 hours/week)
+- **Burnout**: Excessive workload (default: above 8 hours/day, 40 hours/week)
+
+### Display Preferences
+
+- Time format (12h/24h)
+- Week start day
+- Travel time calculations
+- Theme (light/dark)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## Security
 

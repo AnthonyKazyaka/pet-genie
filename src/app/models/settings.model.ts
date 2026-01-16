@@ -15,6 +15,9 @@ export interface AppSettings {
   googleClientId: string;
   selectedCalendars: string[];
 
+  // Firebase/Firestore configuration
+  firebaseConfig?: FirebaseConfig;
+
   // Display preferences
   defaultCalendarView: CalendarViewType;
   weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday, 1 = Monday, etc.
@@ -32,6 +35,16 @@ export interface AppSettings {
   // Feature flags
   enableAnalytics: boolean;
   enableNotifications: boolean;
+}
+
+export interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
 }
 
 export type CalendarViewType = 'month' | 'week' | 'day' | 'list';
