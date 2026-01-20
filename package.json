@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "private": true,
   "dependencies": {
@@ -30,7 +32,10 @@
     "lodash-es": "^4.17.21",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.14.3"
+    "zone.js": "~0.14.3",
+    "expo": "~54.0.31",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.3.4",
