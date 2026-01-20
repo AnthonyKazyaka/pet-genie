@@ -18,15 +18,16 @@ config.resolver.nodeModulesPaths = [
 // Ensure @pet-genie/core resolves to the workspace package
 config.resolver.disableHierarchicalLookup = false;
 
-// Disable lazy bundling for web to avoid import.meta issues
-config.transformer = {
-  ...config.transformer,
-  getTransformOptions: async () => ({
-    transform: {
-      experimentalImportSupport: false,
-      inlineRequires: false,
-    },
-  }),
+// Configure server to handle web properly
+config.server = {
+  ...config.server,
+  rewriteRequestUrl: (url) => {
+    // Force disable lazy loading for web to avoid import.meta issues
+    if (url.includes('platform=web') && url.includes('lazy=true')) {
+      return url.replace('lazy=true', 'lazy=false');
+    }
+    return url;
+  },
 };
 
 module.exports = config;
