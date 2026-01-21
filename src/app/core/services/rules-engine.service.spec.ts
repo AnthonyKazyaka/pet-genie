@@ -38,11 +38,12 @@ describe('RulesEngineService', () => {
     title: 'Test Visit',
     start: new Date('2025-01-20T10:00:00'),
     end: new Date('2025-01-20T11:00:00'),
+    allDay: false,
     isWorkEvent: true,
     clientName: 'Test Client',
     serviceInfo: { type: 'drop-in', duration: 60 },
     ...overrides,
-  });
+  }) as CalendarEvent;
 
   beforeEach(() => {
     dataServiceSpy = jasmine.createSpyObj('DataService', ['settings']);

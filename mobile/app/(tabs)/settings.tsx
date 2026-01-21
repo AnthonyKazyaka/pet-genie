@@ -8,6 +8,7 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { Button } from '@/components/Button';
@@ -114,6 +115,7 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
 }
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { settings, loading, updateSettings, resetSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
@@ -196,6 +198,43 @@ export default function SettingsScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Settings</Text>
           <Text style={styles.headerSubtitle}>Configure your work limits and preferences</Text>
+        </View>
+
+        {/* Quick Links */}
+        <View style={styles.section}>
+          <SectionHeader icon="link" title="Quick Links" />
+          
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.linkItem}
+              onPress={() => router.push('/templates' as any)}
+            >
+              <View style={styles.linkIcon}>
+                <FontAwesome name="copy" size={18} color="#2196F3" />
+              </View>
+              <View style={styles.linkTextContainer}>
+                <Text style={styles.linkTitle}>Templates</Text>
+                <Text style={styles.linkDescription}>Manage appointment templates</Text>
+              </View>
+              <FontAwesome name="chevron-right" size={14} color="#ccc" />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.linkItem}
+              onPress={() => router.push('/export' as any)}
+            >
+              <View style={styles.linkIcon}>
+                <FontAwesome name="download" size={18} color="#4CAF50" />
+              </View>
+              <View style={styles.linkTextContainer}>
+                <Text style={styles.linkTitle}>Export Data</Text>
+                <Text style={styles.linkDescription}>Generate and share reports</Text>
+              </View>
+              <FontAwesome name="chevron-right" size={14} color="#ccc" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Work Limits Section */}
@@ -529,5 +568,32 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  linkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  linkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  linkTextContainer: {
+    flex: 1,
+  },
+  linkTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1a1a1a',
+  },
+  linkDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
   },
 });

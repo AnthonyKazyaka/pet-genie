@@ -4,3 +4,4 @@ export * from './visit-record.model';
 export * from './event.model';
 export * from './settings.model';
 export * from './analytics.model';
+export * from './template.model';
