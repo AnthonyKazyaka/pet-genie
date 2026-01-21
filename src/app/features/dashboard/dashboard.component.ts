@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DataService, WorkloadService, GoogleCalendarService, EventProcessorService } from '../../core/services';
+import { DataService, WorkloadService, GoogleCalendarService, EventProcessorService, RulesEngineService, RuleViolation } from '../../core/services';
 import { CalendarEvent, DateRange } from '../../models';
 import { SkeletonLoaderComponent, EmptyStateComponent } from '../../shared';
 import { firstValueFrom } from 'rxjs';
@@ -38,6 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private workloadService = inject(WorkloadService);
   private googleCalendarService = inject(GoogleCalendarService);
   private eventProcessor = inject(EventProcessorService);
+  private rulesEngine = inject(RulesEngineService);
   private router = inject(Router);
 
   isLoading = signal(false);
@@ -46,6 +47,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // Connection status
   isConnected = computed(() => this.googleCalendarService.isSignedIn());
+
+  // Burnout indicators from RulesEngineService
+  burnoutIndicators = computed(() => {
+    return this.rulesEngine.getBurnoutIndicators(this.events());
+  });
+
+  hasWarnings = computed(() => this.rulesEngine.hasWarnings());
+  hasCritical = computed(() => this.rulesEngine.hasCritical());
+  violations = computed(() => this.rulesEngine.currentViolations());
+  burnoutRisk = computed(() => this.rulesEngine.currentBurnoutRisk());
 
   // Setup progress tracking
   hasCalendarsSelected = computed(() => {
@@ -196,6 +207,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const processedEvents = this.eventProcessor.processEvents(events ?? []);
       this.events.set(processedEvents);
+
+      // Evaluate rules for burnout detection
+      this.rulesEngine.evaluateRules(processedEvents, dateRange);
     } catch (error) {
       console.error('Failed to load events:', error);
     } finally {

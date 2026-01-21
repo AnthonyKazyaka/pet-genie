@@ -101,6 +101,72 @@
         }
       </section>
 
+      <!-- Burnout Warning / Workload Alert -->
+      @if (isConnected() && hasCompletedSetup() && (hasWarnings() || burnoutIndicators().isHighLoad)) {
+        <section class="workload-alert" aria-label="Workload alert">
+          <mat-card 
+            class="alert-card" 
+            [class.alert-warning]="!hasCritical() && hasWarnings()"
+            [class.alert-critical]="hasCritical()"
+            [style.--alert-color]="burnoutIndicators().color"
+          >
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="alert-icon">
+                {{ hasCritical() ? 'warning' : 'trending_up' }}
+              </mat-icon>
+              <mat-card-title>
+                {{ hasCritical() ? 'High Workload Alert' : 'Busy Week Ahead' }}
+              </mat-card-title>
+              <mat-card-subtitle>
+                {{ burnoutIndicators().message }}
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="alert-metrics">
+                <div class="metric">
+                  <span class="metric-value">{{ burnoutIndicators().weeklyHours | number:'1.1-1' }}h</span>
+                  <span class="metric-label">This Week</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-value">{{ burnoutIndicators().dailyAverage | number:'1.1-1' }}h</span>
+                  <span class="metric-label">Daily Avg</span>
+                </div>
+                @if (burnoutIndicators().busiestDay) {
+                  <div class="metric">
+                    <span class="metric-value">{{ burnoutIndicators().busiestDay!.hours | number:'1.1-1' }}h</span>
+                    <span class="metric-label">{{ format(burnoutIndicators().busiestDay!.date, 'EEE') }} (Busiest)</span>
+                  </div>
+                }
+              </div>
+
+              @if (violations().length > 0) {
+                <div class="violations-list">
+                  @for (violation of violations().slice(0, 3); track violation.type + violation.date) {
+                    <div class="violation-item" [class.critical]="violation.severity === 'critical'">
+                      <mat-icon>{{ violation.icon }}</mat-icon>
+                      <div class="violation-info">
+                        <span class="violation-title">{{ violation.title }}</span>
+                        <span class="violation-desc">{{ violation.description }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-button routerLink="/analytics">
+                <mat-icon>insights</mat-icon>
+                View Analytics
+              </button>
+              <button mat-button routerLink="/settings">
+                <mat-icon>tune</mat-icon>
+                Adjust Thresholds
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </section>
+      }
+
       <!-- Getting Started / Setup Progress -->
       @if (!isConnected() || !hasCompletedSetup()) {
         <section class="getting-started" aria-label="Setup wizard">

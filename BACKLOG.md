@@ -231,13 +231,13 @@ This backlog is ordered to **maximize real-world usefulness early** and **minimi
 
 ## 📊 EPIC 7 — Analytics Refactor (Prep for Growth)
 
-### PG-7.1 Extract AnalyticsService
+### PG-7.1 Extract AnalyticsService ✅ Completed
 **Files**
 - `src/app/core/services/analytics.service.ts`
 
 **Acceptance Criteria**
-- Move aggregation logic out of AnalyticsComponent
-- Service exposes:
+- ✅ Move aggregation logic out of AnalyticsComponent
+- ✅ Service exposes:
   - hours/day
   - hours/week
   - breakdown by service
@@ -245,34 +245,34 @@ This backlog is ordered to **maximize real-world usefulness early** and **minimi
 
 ---
 
-### PG-7.2 Analytics uses VisitRecords when present
+### PG-7.2 Analytics uses VisitRecords when present ✅ Completed
 **Acceptance Criteria**
-- If VisitRecord exists:
+- ✅ If VisitRecord exists:
   - prefer actual duration (checkIn/out)
-- Fallback to scheduled duration otherwise
-- No regression in existing charts
+- ✅ Fallback to scheduled duration otherwise
+- ✅ No regression in existing charts
 
 ---
 
 ## 🧘 EPIC 8 — Boundaries & Burnout Protection (Phase 2+)
 
-### PG-8.1 RulesEngineService
+### PG-8.1 RulesEngineService ✅ Completed
 **Files**
 - `src/app/core/services/rules-engine.service.ts`
 
 **Acceptance Criteria**
-- Central enforcement for:
+- ✅ Central enforcement for:
   - max visits/day
   - max hours/week
   - threshold warnings
-- Consumes AppSettings + WorkloadService
+- ✅ Consumes AppSettings + WorkloadService
 
 ---
 
-### PG-8.2 Burnout indicators
+### PG-8.2 Burnout indicators ✅ Completed
 **Acceptance Criteria**
-- Dashboard warning if thresholds exceeded
-- “High load week” indicator
+- ✅ Dashboard warning if thresholds exceeded
+- ✅ "High load week" indicator
 
 ---
 

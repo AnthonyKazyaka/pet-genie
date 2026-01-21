@@ -13,3 +13,5 @@ export * from './pet-data.service';
 export * from './visit-record-data.service';
 export * from './visit-summary.service';
 export * from './firebase.service';
+export * from './analytics.service';
+export * from './rules-engine.service';
