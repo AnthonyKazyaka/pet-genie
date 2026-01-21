@@ -5,3 +5,4 @@ export * from './event.model';
 export * from './settings.model';
 export * from './analytics.model';
 export * from './template.model';
+export * from './workload.model';

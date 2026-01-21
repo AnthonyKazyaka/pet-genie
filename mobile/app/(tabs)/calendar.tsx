@@ -6,30 +6,25 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
+  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { LoadingState } from '@/components/EmptyState';
-import { useVisitRecords, useSettings, useRulesEngine } from '@/hooks';
-import { CalendarEvent } from '@/models';
+import { useSettings, useRulesEngine } from '@/hooks';
+import {
+  CalendarEvent,
+  WorkloadLevel,
+  WORKLOAD_COLORS,
+  WORKLOAD_COLORS_DARK,
+  getWorkloadLevel,
+  calculateDayWorkHours,
+  DEFAULT_THRESHOLDS,
+} from '@/models';
 
 const { width } = Dimensions.get('window');
 const DAY_WIDTH = (width - 48) / 7; // Account for padding
-
-/**
- * Get start of month
- */
-function startOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-/**
- * Get end of month
- */
-function endOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
 
 /**
  * Get all days to display in month view (including padding days)
@@ -105,12 +100,12 @@ function generateMockEvents(): CalendarEvent[] {
 
     const services = ['drop-in', 'walk', 'overnight'];
     const clients = ['Johnson Family', 'Smith Residence', 'Garcia Home', 'Williams Family'];
-    const hours = [8, 10, 14, 16, 18];
+    const hours = [7, 9, 11, 14, 16, 18];
 
     for (let i = 0; i < eventCount && i < hours.length; i++) {
       const service = services[Math.floor(Math.random() * services.length)];
       const client = clients[Math.floor(Math.random() * clients.length)];
-      const duration = service === 'walk' ? 60 : 30;
+      const duration = service === 'walk' ? 60 : service === 'overnight' ? 480 : 30;
 
       events.push({
         id: `event_${dateStr}_${i}`,
@@ -119,7 +114,7 @@ function generateMockEvents(): CalendarEvent[] {
         clientName: client,
         location: `${100 + i} Main Street`,
         start: `${dateStr}T${String(hours[i]).padStart(2, '0')}:00:00`,
-        end: `${dateStr}T${String(hours[i]).padStart(2, '0')}:${String(duration).padStart(2, '0')}:00`,
+        end: `${dateStr}T${String(hours[i] + Math.floor(duration / 60)).padStart(2, '0')}:${String(duration % 60).padStart(2, '0')}:00`,
         allDay: false,
         status: 'confirmed',
         isWorkEvent: true,
@@ -135,22 +130,52 @@ function generateMockEvents(): CalendarEvent[] {
 }
 
 /**
- * Day Cell Component
+ * Workload Legend Component
+ */
+function WorkloadLegend({ isDark }: { isDark: boolean }) {
+  const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
+  const levels: WorkloadLevel[] = ['comfortable', 'busy', 'high', 'burnout'];
+
+  return (
+    <View style={styles.legendContainer}>
+      <Text style={[styles.legendTitle, isDark && styles.legendTitleDark]}>Workload:</Text>
+      {levels.map((level) => (
+        <View key={level} style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors[level].solid }]} />
+          <Text style={[styles.legendText, isDark && styles.legendTextDark]}>
+            {colors[level].label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Day Cell Component with Workload Indicator
  */
 function DayCell({
   date,
   events,
   isCurrentMonth,
+  workloadLevel,
+  workloadHours,
   onPress,
+  isDark,
 }: {
   date: Date;
   events: CalendarEvent[];
   isCurrentMonth: boolean;
+  workloadLevel: WorkloadLevel;
+  workloadHours: number;
   onPress: () => void;
+  isDark: boolean;
 }) {
   const dayNumber = date.getDate();
   const today = isToday(date);
   const eventCount = events.length;
+  const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
+  const workloadColor = colors[workloadLevel];
 
   return (
     <TouchableOpacity
@@ -158,30 +183,40 @@ function DayCell({
         styles.dayCell,
         !isCurrentMonth && styles.otherMonthDay,
         today && styles.todayCell,
+        workloadLevel !== 'none' && { backgroundColor: workloadColor.background },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text
-        style={[
-          styles.dayNumber,
-          !isCurrentMonth && styles.otherMonthDayNumber,
-          today && styles.todayNumber,
-        ]}
-      >
-        {dayNumber}
-      </Text>
+      {/* Day Number */}
+      <View style={[styles.dayNumberContainer, today && styles.todayNumberContainer]}>
+        <Text
+          style={[
+            styles.dayNumber,
+            !isCurrentMonth && styles.otherMonthDayNumber,
+            today && styles.todayNumber,
+            isDark && !today && styles.dayNumberDark,
+          ]}
+        >
+          {dayNumber}
+        </Text>
+      </View>
+
+      {/* Workload Indicator Dot */}
+      {workloadLevel !== 'none' && (
+        <View style={[styles.workloadDot, { backgroundColor: workloadColor.solid }]} />
+      )}
+
+      {/* Event Count / Hours */}
       {eventCount > 0 && (
-        <View style={styles.eventDots}>
-          {eventCount <= 3 ? (
-            events.slice(0, 3).map((_, idx) => (
-              <View key={idx} style={[styles.eventDot, { backgroundColor: '#2196F3' }]} />
-            ))
-          ) : (
-            <>
-              <View style={[styles.eventDot, { backgroundColor: '#2196F3' }]} />
-              <Text style={styles.moreEvents}>+{eventCount - 1}</Text>
-            </>
+        <View style={styles.eventInfo}>
+          <Text style={[styles.eventCount, { color: workloadColor.text }]}>
+            {eventCount}
+          </Text>
+          {workloadHours >= 1 && (
+            <Text style={[styles.hoursText, isDark && styles.hoursTextDark]}>
+              {workloadHours.toFixed(0)}h
+            </Text>
           )}
         </View>
       )}
@@ -197,11 +232,13 @@ function WeekRow({
   events,
   currentMonth,
   onDayPress,
+  isDark,
 }: {
   days: Date[];
   events: CalendarEvent[];
   currentMonth: number;
   onDayPress: (date: Date) => void;
+  isDark: boolean;
 }) {
   return (
     <View style={styles.weekRow}>
@@ -209,13 +246,19 @@ function WeekRow({
         const dayEvents = events.filter((e) =>
           isSameDay(new Date(e.start), date)
         );
+        const workloadHours = calculateDayWorkHours(dayEvents, date);
+        const workloadLevel = getWorkloadLevel(workloadHours, 'daily', DEFAULT_THRESHOLDS);
+
         return (
           <DayCell
             key={idx}
             date={date}
             events={dayEvents}
             isCurrentMonth={date.getMonth() === currentMonth}
+            workloadLevel={workloadLevel}
+            workloadHours={workloadHours}
             onPress={() => onDayPress(date)}
+            isDark={isDark}
           />
         );
       })}
@@ -224,19 +267,27 @@ function WeekRow({
 }
 
 /**
- * Day Detail Modal Content
+ * Day Detail Panel with Workload
  */
 function DayDetail({
   date,
   events,
+  workloadLevel,
+  workloadHours,
   onEventPress,
   onClose,
+  isDark,
 }: {
   date: Date;
   events: CalendarEvent[];
+  workloadLevel: WorkloadLevel;
+  workloadHours: number;
   onEventPress: (event: CalendarEvent) => void;
   onClose: () => void;
+  isDark: boolean;
 }) {
+  const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
+  const workloadColor = colors[workloadLevel];
   const dateStr = date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -244,30 +295,46 @@ function DayDetail({
   });
 
   return (
-    <View style={styles.dayDetail}>
-      <View style={styles.dayDetailHeader}>
-        <Text style={styles.dayDetailTitle}>{dateStr}</Text>
+    <View style={[styles.dayDetail, isDark && styles.dayDetailDark]}>
+      <View style={[styles.dayDetailHeader, isDark && styles.dayDetailHeaderDark]}>
+        <View>
+          <Text style={[styles.dayDetailTitle, isDark && styles.dayDetailTitleDark]}>
+            {dateStr}
+          </Text>
+          {/* Workload Summary */}
+          <View style={styles.workloadSummary}>
+            <View style={[styles.workloadBadge, { backgroundColor: workloadColor.background }]}>
+              <View style={[styles.workloadBadgeDot, { backgroundColor: workloadColor.solid }]} />
+              <Text style={[styles.workloadBadgeText, { color: workloadColor.text }]}>
+                {workloadColor.label}
+                {workloadHours > 0 && ` • ${workloadHours.toFixed(1)}h`}
+              </Text>
+            </View>
+          </View>
+        </View>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <FontAwesome name="times" size={20} color="#666" />
+          <FontAwesome name="times" size={20} color={isDark ? '#999' : '#666'} />
         </TouchableOpacity>
       </View>
 
       {events.length === 0 ? (
         <View style={styles.noEvents}>
-          <FontAwesome name="calendar-o" size={32} color="#ccc" />
-          <Text style={styles.noEventsText}>No visits scheduled</Text>
+          <FontAwesome name="calendar-o" size={32} color={isDark ? '#555' : '#ccc'} />
+          <Text style={[styles.noEventsText, isDark && styles.noEventsTextDark]}>
+            No visits scheduled
+          </Text>
         </View>
       ) : (
         <ScrollView style={styles.eventsList}>
           {events.map((event) => (
             <TouchableOpacity
               key={event.id}
-              style={styles.eventItem}
+              style={[styles.eventItem, isDark && styles.eventItemDark]}
               onPress={() => onEventPress(event)}
               activeOpacity={0.7}
             >
               <View style={styles.eventTime}>
-                <Text style={styles.eventTimeText}>
+                <Text style={[styles.eventTimeText, isDark && styles.eventTimeTextDark]}>
                   {new Date(event.start).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -275,19 +342,23 @@ function DayDetail({
                   })}
                 </Text>
               </View>
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle}>{event.title}</Text>
+              <View style={styles.eventInfoContainer}>
+                <Text style={[styles.eventTitle, isDark && styles.eventTitleDark]}>
+                  {event.title}
+                </Text>
                 {event.clientName && (
-                  <Text style={styles.eventClient}>{event.clientName}</Text>
+                  <Text style={[styles.eventClient, isDark && styles.eventClientDark]}>
+                    {event.clientName}
+                  </Text>
                 )}
                 {event.location && (
-                  <Text style={styles.eventLocation} numberOfLines={1}>
-                    <FontAwesome name="map-marker" size={12} color="#999" />{' '}
+                  <Text style={[styles.eventLocation, isDark && styles.eventLocationDark]} numberOfLines={1}>
+                    <FontAwesome name="map-marker" size={12} color={isDark ? '#666' : '#999'} />{' '}
                     {event.location}
                   </Text>
                 )}
               </View>
-              <FontAwesome name="chevron-right" size={14} color="#ccc" />
+              <FontAwesome name="chevron-right" size={14} color={isDark ? '#555' : '#ccc'} />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -297,10 +368,54 @@ function DayDetail({
 }
 
 /**
+ * Weekly Summary Bar
+ */
+function WeeklySummary({ events, isDark }: { events: CalendarEvent[]; isDark: boolean }) {
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  const weekEvents = events.filter((e) => {
+    const eventDate = new Date(e.start);
+    return eventDate >= startOfWeek && eventDate <= endOfWeek;
+  });
+
+  const weekHours = weekEvents.reduce((total, e) => {
+    const start = new Date(e.start);
+    const end = new Date(e.end);
+    return total + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+  }, 0);
+
+  const weekLevel = getWorkloadLevel(weekHours, 'weekly', DEFAULT_THRESHOLDS);
+  const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
+  const workloadColor = colors[weekLevel];
+
+  return (
+    <View style={[styles.weeklySummary, { backgroundColor: workloadColor.background }]}>
+      <View style={styles.weeklySummaryContent}>
+        <View style={[styles.weeklyDot, { backgroundColor: workloadColor.solid }]} />
+        <Text style={[styles.weeklySummaryText, isDark && styles.weeklySummaryTextDark]}>
+          This week: <Text style={{ fontWeight: '700' }}>{weekHours.toFixed(1)}h</Text> scheduled
+        </Text>
+        <View style={[styles.weeklyBadgePill, { backgroundColor: workloadColor.solid }]}>
+          <Text style={styles.weeklyBadgePillText}>{workloadColor.label}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
  * Calendar Screen
  */
 export default function CalendarScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { settings } = useSettings();
   const { getBurnoutIndicators } = useRulesEngine(settings);
 
@@ -311,12 +426,6 @@ export default function CalendarScreen() {
 
   // Generate mock events (in production, fetch from calendar)
   const events = useMemo(() => generateMockEvents(), []);
-
-  // Get burnout indicators
-  const burnoutIndicators = useMemo(
-    () => getBurnoutIndicators(events),
-    [events, getBurnoutIndicators]
-  );
 
   // Get days for current month view
   const monthDays = useMemo(() => {
@@ -337,6 +446,14 @@ export default function CalendarScreen() {
     if (!selectedDate) return [];
     return events.filter((e) => isSameDay(new Date(e.start), selectedDate));
   }, [selectedDate, events]);
+
+  // Calculate selected day workload
+  const selectedDayWorkload = useMemo(() => {
+    if (!selectedDate) return { hours: 0, level: 'none' as WorkloadLevel };
+    const hours = calculateDayWorkHours(selectedDayEvents, selectedDate);
+    const level = getWorkloadLevel(hours, 'daily', DEFAULT_THRESHOLDS);
+    return { hours, level };
+  }, [selectedDate, selectedDayEvents]);
 
   /**
    * Navigate to previous month
@@ -392,7 +509,7 @@ export default function CalendarScreen() {
   }, []);
 
   if (loading) {
-    return <LoadingState message="Loading calendar..." />;
+    return <LoadingState type="skeleton-calendar" />;
   }
 
   return (
@@ -402,29 +519,18 @@ export default function CalendarScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Workload Indicator */}
-        {burnoutIndicators.isHighLoad && (
-          <View
-            style={[
-              styles.workloadBanner,
-              { backgroundColor: burnoutIndicators.color },
-            ]}
-          >
-            <FontAwesome name="exclamation-triangle" size={16} color="#fff" />
-            <Text style={styles.workloadText}>
-              {burnoutIndicators.weeklyHours.toFixed(1)}h this week •{' '}
-              {burnoutIndicators.message}
-            </Text>
-          </View>
-        )}
+        {/* Weekly Summary */}
+        <WeeklySummary events={events} isDark={isDark} />
 
         {/* Month Navigation */}
-        <View style={styles.monthHeader}>
+        <View style={[styles.monthHeader, isDark && styles.monthHeaderDark]}>
           <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton}>
             <FontAwesome name="chevron-left" size={20} color="#2196F3" />
           </TouchableOpacity>
           <TouchableOpacity onPress={goToToday}>
-            <Text style={styles.monthTitle}>{formatMonthYear(currentDate)}</Text>
+            <Text style={[styles.monthTitle, isDark && styles.monthTitleDark]}>
+              {formatMonthYear(currentDate)}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
             <FontAwesome name="chevron-right" size={20} color="#2196F3" />
@@ -434,7 +540,7 @@ export default function CalendarScreen() {
         {/* Day of Week Headers */}
         <View style={styles.weekDaysHeader}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <Text key={day} style={styles.weekDayLabel}>
+            <Text key={day} style={[styles.weekDayLabel, isDark && styles.weekDayLabelDark]}>
               {day}
             </Text>
           ))}
@@ -449,23 +555,30 @@ export default function CalendarScreen() {
               events={events}
               currentMonth={currentDate.getMonth()}
               onDayPress={handleDayPress}
+              isDark={isDark}
             />
           ))}
         </View>
+
+        {/* Workload Legend */}
+        <WorkloadLegend isDark={isDark} />
 
         {/* Selected Day Detail */}
         {selectedDate && (
           <DayDetail
             date={selectedDate}
             events={selectedDayEvents}
+            workloadLevel={selectedDayWorkload.level}
+            workloadHours={selectedDayWorkload.hours}
             onEventPress={handleEventPress}
             onClose={() => setSelectedDate(null)}
+            isDark={isDark}
           />
         )}
 
         {/* Stats Summary */}
-        <View style={styles.statsContainer}>
-          <Text style={styles.statsTitle}>This Month</Text>
+        <View style={[styles.statsContainer, isDark && styles.statsContainerDark]}>
+          <Text style={[styles.statsTitle, isDark && styles.statsTitleDark]}>This Month</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
@@ -529,16 +642,71 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  workloadBanner: {
+  weeklySummary: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  weeklySummaryContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 8,
   },
-  workloadText: {
-    color: '#fff',
-    fontSize: 13,
+  weeklyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  weeklySummaryText: {
     flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  weeklySummaryTextDark: {
+    color: '#e0e0e0',
+  },
+  weeklyBadgePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  weeklyBadgePillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  legendTitle: {
+    fontSize: 12,
+    color: '#666',
+    marginRight: 8,
+  },
+  legendTitleDark: {
+    color: '#999',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 4,
+  },
+  legendText: {
+    fontSize: 11,
+    color: '#666',
+  },
+  legendTextDark: {
+    color: '#999',
   },
   monthHeader: {
     flexDirection: 'row',
@@ -547,12 +715,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  monthHeaderDark: {},
   navButton: {
     padding: 8,
   },
   monthTitle: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#333',
+  },
+  monthTitleDark: {
+    color: '#fff',
   },
   weekDaysHeader: {
     flexDirection: 'row',
@@ -565,6 +738,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
+  },
+  weekDayLabelDark: {
+    color: '#999',
   },
   calendarGrid: {
     paddingHorizontal: 16,
@@ -584,34 +760,52 @@ const styles = StyleSheet.create({
   otherMonthDay: {
     opacity: 0.4,
   },
-  todayCell: {
-    backgroundColor: '#E3F2FD',
+  todayCell: {},
+  dayNumberContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayNumberContainer: {
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
   },
   dayNumber: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#333',
+  },
+  dayNumberDark: {
+    color: '#e0e0e0',
   },
   otherMonthDayNumber: {
     color: '#999',
   },
   todayNumber: {
-    color: '#2196F3',
+    color: '#fff',
     fontWeight: '700',
   },
-  eventDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 2,
-  },
-  eventDot: {
+  workloadDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
+    marginTop: 2,
   },
-  moreEvents: {
-    fontSize: 10,
+  eventInfo: {
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  eventCount: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  hoursText: {
+    fontSize: 9,
     color: '#666',
+  },
+  hoursTextDark: {
+    color: '#999',
   },
   dayDetail: {
     margin: 16,
@@ -624,16 +818,47 @@ const styles = StyleSheet.create({
     elevation: 3,
     overflow: 'hidden',
   },
+  dayDetailDark: {
+    backgroundColor: '#1e1e1e',
+  },
   dayDetailHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  dayDetailHeaderDark: {
+    borderBottomColor: '#333',
+  },
   dayDetailTitle: {
     fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  dayDetailTitleDark: {
+    color: '#fff',
+  },
+  workloadSummary: {
+    marginTop: 6,
+  },
+  workloadBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  workloadBadgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  workloadBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
   },
   closeButton: {
@@ -647,6 +872,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#999',
   },
+  noEventsTextDark: {
+    color: '#666',
+  },
   eventsList: {
     maxHeight: 300,
   },
@@ -657,6 +885,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  eventItemDark: {
+    borderBottomColor: '#333',
+  },
   eventTime: {
     width: 70,
   },
@@ -665,21 +896,34 @@ const styles = StyleSheet.create({
     color: '#2196F3',
     fontWeight: '500',
   },
-  eventInfo: {
+  eventTimeTextDark: {
+    color: '#64B5F6',
+  },
+  eventInfoContainer: {
     flex: 1,
   },
   eventTitle: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#333',
+  },
+  eventTitleDark: {
+    color: '#fff',
   },
   eventClient: {
     fontSize: 13,
     color: '#666',
   },
+  eventClientDark: {
+    color: '#999',
+  },
   eventLocation: {
     fontSize: 12,
     color: '#999',
     marginTop: 2,
+  },
+  eventLocationDark: {
+    color: '#666',
   },
   statsContainer: {
     margin: 16,
@@ -687,10 +931,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
   },
+  statsContainerDark: {
+    backgroundColor: '#1e1e1e',
+  },
   statsTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+    color: '#333',
+  },
+  statsTitleDark: {
+    color: '#fff',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -708,5 +959,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+  },
+  statLabelDark: {
+    color: '#999',
   },
 });

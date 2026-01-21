@@ -5,6 +5,7 @@ import {
   View,
   RefreshControl,
   TouchableOpacity,
+  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -12,7 +13,18 @@ import { Text, View as ThemedView } from '@/components/Themed';
 import { VisitCard } from '@/components/VisitCard';
 import { EmptyState, LoadingState } from '@/components/EmptyState';
 import { useVisitRecords, useAnalytics, useSettings } from '@/hooks';
-import { CalendarEvent, VisitEvent, VisitStatus, WorkloadWarning } from '@/models';
+import {
+  CalendarEvent,
+  VisitEvent,
+  VisitStatus,
+  WorkloadWarning,
+  WorkloadLevel,
+  WORKLOAD_COLORS,
+  WORKLOAD_COLORS_DARK,
+  getWorkloadLevel,
+  calculateDayWorkHours,
+  DEFAULT_THRESHOLDS,
+} from '@/models';
 
 /**
  * Format time from ISO string
@@ -157,8 +169,61 @@ function WarningBanner({ warnings, onPress }: { warnings: WorkloadWarning[]; onP
   );
 }
 
+/**
+ * Today's Workload Summary Component
+ */
+function TodayWorkloadSummary({
+  events,
+  isDark,
+}: {
+  events: CalendarEvent[];
+  isDark: boolean;
+}) {
+  const today = new Date();
+  const hours = calculateDayWorkHours(events, today);
+  const level = getWorkloadLevel(hours, 'daily', DEFAULT_THRESHOLDS);
+  const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
+  const workloadColor = colors[level];
+
+  // Calculate week totals for context
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const remainingThisWeek = Math.max(0, DEFAULT_THRESHOLDS.weekly.comfortable - hours);
+  
+  return (
+    <View
+      style={[
+        styles.workloadSummary,
+        { backgroundColor: workloadColor.background },
+        isDark && styles.workloadSummaryDark,
+      ]}
+    >
+      <View style={styles.workloadSummaryRow}>
+        <View style={[styles.workloadIndicatorDot, { backgroundColor: workloadColor.solid }]} />
+        <View style={styles.workloadSummaryInfo}>
+          <Text style={[styles.workloadSummaryTitle, isDark && styles.workloadSummaryTitleDark]}>
+            Today's Workload
+          </Text>
+          <Text style={[styles.workloadSummarySubtitle, { color: workloadColor.text }]}>
+            {hours.toFixed(1)}h scheduled • {workloadColor.label}
+          </Text>
+        </View>
+        <View style={[styles.workloadPill, { backgroundColor: workloadColor.solid }]}>
+          <Text style={styles.workloadPillText}>
+            {events.length} {events.length === 1 ? 'visit' : 'visits'}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function TodayScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { visitRecords, getByEventKey, getOrCreate } = useVisitRecords();
   const { checkWorkloadWarnings } = useAnalytics();
   const { settings } = useSettings();
@@ -270,7 +335,7 @@ export default function TodayScreen() {
   };
 
   if (loading) {
-    return <LoadingState message="Loading today's visits..." />;
+    return <LoadingState type="skeleton-today" />;
   }
 
   return (
@@ -278,31 +343,36 @@ export default function TodayScreen() {
       {/* Header Stats */}
       {/* Workload Warning Banner */}
       <WarningBanner warnings={warnings} onPress={handleWarningPress} />
+      
+      {/* Today's Workload Summary */}
+      <TodayWorkloadSummary events={visits} isDark={isDark} />
 
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, isDark && styles.statsContainerDark]}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{scheduledCount}</Text>
-          <Text style={styles.statLabel}>Upcoming</Text>
+          <Text style={[styles.statLabel, isDark && styles.statLabelDark]}>Upcoming</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, isDark && styles.statDividerDark]} />
         <View style={styles.statItem}>
           <Text style={[styles.statNumber, { color: '#E65100' }]}>
             {inProgressCount}
           </Text>
-          <Text style={styles.statLabel}>In Progress</Text>
+          <Text style={[styles.statLabel, isDark && styles.statLabelDark]}>In Progress</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, isDark && styles.statDividerDark]} />
         <View style={styles.statItem}>
           <Text style={[styles.statNumber, { color: '#2E7D32' }]}>
             {completedCount}
           </Text>
-          <Text style={styles.statLabel}>Completed</Text>
+          <Text style={[styles.statLabel, isDark && styles.statLabelDark]}>Completed</Text>
         </View>
       </View>
 
       {/* Date Header */}
       <View style={styles.dateHeader}>
-        <Text style={styles.dateText}>{formatDateHeader(currentDate)}</Text>
+        <Text style={[styles.dateText, isDark && styles.dateTextDark]}>
+          {formatDateHeader(currentDate)}
+        </Text>
       </View>
 
       {/* Visits List */}
@@ -341,6 +411,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  workloadSummary: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  workloadSummaryDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  workloadSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  workloadIndicatorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  workloadSummaryInfo: {
+    flex: 1,
+  },
+  workloadSummaryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  workloadSummaryTitleDark: {
+    color: '#e0e0e0',
+  },
+  workloadSummarySubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  workloadPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  workloadPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -356,6 +471,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  statsContainerDark: {
+    backgroundColor: '#1e1e1e',
+  },
   statItem: {
     alignItems: 'center',
     flex: 1,
@@ -370,10 +488,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
+  statLabelDark: {
+    color: '#999',
+  },
   statDivider: {
     width: 1,
     height: 40,
     backgroundColor: '#eee',
+  },
+  statDividerDark: {
+    backgroundColor: '#333',
   },
   dateHeader: {
     paddingHorizontal: 16,
@@ -383,6 +507,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  dateTextDark: {
+    color: '#e0e0e0',
   },
   scrollView: {
     flex: 1,
