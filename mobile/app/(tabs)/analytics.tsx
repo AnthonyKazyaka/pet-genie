@@ -1,74 +1,66 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   ScrollView,
   View,
   RefreshControl,
   Dimensions,
+  TouchableOpacity,
+  useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { LoadingState } from '@/components/EmptyState';
-import { useVisitRecords, useAnalytics, useSettings } from '@/hooks';
+import { useVisitRecords, useAnalytics, useSettings, useAuth, useCalendarEvents } from '@/hooks';
+import { HapticFeedback } from '@/services';
 import { CalendarEvent, AnalyticsSummary, WorkloadWarning } from '@/models';
 
 const { width } = Dimensions.get('window');
 
 /**
- * Generate mock events for demo (same as Today screen)
+ * Prompt to connect Google Calendar when not authenticated
  */
-function generateMockEvents(): CalendarEvent[] {
-  const events: CalendarEvent[] = [];
-  const today = new Date();
-
-  // Generate events for the past 7 days and next 7 days
-  for (let dayOffset = -7; dayOffset <= 7; dayOffset++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + dayOffset);
-    const dateStr = date.toISOString().split('T')[0];
-
-    // Skip some days randomly for variety
-    if (dayOffset !== 0 && Math.random() > 0.7) continue;
-
-    // Add 2-4 events per day
-    const eventCount = Math.floor(Math.random() * 3) + 2;
-    const services: Array<{ type: string; duration: number }> = [
-      { type: 'drop-in', duration: 30 },
-      { type: 'walk', duration: 60 },
-      { type: 'drop-in', duration: 30 },
-      { type: 'overnight', duration: 720 },
-    ];
-    const clients = ['Johnson Family', 'Smith Residence', 'Garcia Home', 'Williams Family', 'Brown House'];
-    const pets = ['Max & Bella', 'Luna', 'Whiskers', 'Charlie', 'Buddy'];
-
-    const hours = [8, 10, 14, 16, 18];
-
-    for (let i = 0; i < eventCount && i < hours.length; i++) {
-      const service = services[i % services.length];
-      const client = clients[i % clients.length];
-      const pet = pets[i % pets.length];
-
-      events.push({
-        id: `event_${dateStr}_${i}`,
-        calendarId: 'work',
-        title: `${service.type === 'walk' ? 'Walk' : 'Drop-in'} - ${pet}`,
-        clientName: client,
-        location: `${100 + i} Main Street`,
-        start: `${dateStr}T${String(hours[i]).padStart(2, '0')}:00:00`,
-        end: `${dateStr}T${String(hours[i] + Math.floor(service.duration / 60)).padStart(2, '0')}:${String(service.duration % 60).padStart(2, '0')}:00`,
-        allDay: false,
-        status: 'confirmed',
-        isWorkEvent: true,
-        serviceInfo: {
-          type: service.type as any,
-          duration: service.duration,
-          petName: pet,
-        },
-      });
-    }
-  }
-
-  return events;
+function CalendarConnectPrompt({
+  onConnect,
+  isLoading,
+  isDark,
+}: {
+  onConnect: () => void;
+  isLoading: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <View style={[styles.connectPrompt, isDark && styles.connectPromptDark]}>
+      <View style={[styles.connectIconContainer, isDark && styles.connectIconContainerDark]}>
+        <FontAwesome name="line-chart" size={48} color={isDark ? '#60A5FA' : '#2563EB'} />
+      </View>
+      <Text style={[styles.connectTitle, isDark && styles.connectTitleDark]}>
+        Connect Your Calendar
+      </Text>
+      <Text style={[styles.connectDescription, isDark && styles.connectDescriptionDark]}>
+        Link your Google Calendar to see analytics for your pet-sitting visits.
+      </Text>
+      <TouchableOpacity
+        style={[styles.connectButton, isLoading && styles.connectButtonDisabled]}
+        onPress={() => {
+          HapticFeedback.selection();
+          onConnect();
+        }}
+        disabled={isLoading}
+        activeOpacity={0.8}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <FontAwesome name="google" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.connectButtonText}>Connect Google Calendar</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 /**
@@ -214,55 +206,87 @@ function BreakdownList({
 }
 
 export default function AnalyticsScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { visitRecords } = useVisitRecords();
   const { settings } = useSettings();
   const { computeAnalytics, checkWorkloadWarnings } = useAnalytics();
+  
+  // Auth state for Google Calendar
+  const { isSignedIn, isLoading: authLoading, signIn } = useAuth();
+  
+  // Calculate date range for analytics (last 7 days + next 7 days)
+  const dateRange = useMemo(() => {
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    return { start: startDate, end: endDate };
+  }, []);
+  
+  // Fetch calendar events for the date range
+  const { events: calendarEvents, loading: eventsLoading, refresh: refreshEvents } = useCalendarEvents(dateRange);
 
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [warnings, setWarnings] = useState<WorkloadWarning[]>([]);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Use empty array if not signed in
+  const events = useMemo(() => {
+    return isSignedIn && calendarEvents ? calendarEvents : [];
+  }, [isSignedIn, calendarEvents]);
 
   /**
-   * Load analytics data
+   * Compute analytics when events change
    */
-  const loadAnalytics = useCallback(async () => {
+  useEffect(() => {
+    if (!isSignedIn || !calendarEvents) {
+      setAnalytics(null);
+      setWarnings([]);
+      return;
+    }
+    
     try {
-      // Generate mock events (in production, fetch from calendar)
-      const mockEvents = generateMockEvents();
-      setEvents(mockEvents);
-
       // Compute analytics for last 7 days
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
 
-      const summary = computeAnalytics(startDate, endDate, visitRecords, mockEvents);
+      const summary = computeAnalytics(startDate, endDate, visitRecords, calendarEvents);
       setAnalytics(summary);
 
       // Check for workload warnings
-      const workloadWarnings = checkWorkloadWarnings(visitRecords, mockEvents, settings);
+      const workloadWarnings = checkWorkloadWarnings(visitRecords, calendarEvents, settings);
       setWarnings(workloadWarnings);
     } catch (error) {
-      console.error('Error loading analytics:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error('Error computing analytics:', error);
     }
-  }, [visitRecords, settings, computeAnalytics, checkWorkloadWarnings]);
-
-  useEffect(() => {
-    loadAnalytics();
-  }, [loadAnalytics]);
+  }, [isSignedIn, calendarEvents, visitRecords, settings, computeAnalytics, checkWorkloadWarnings]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadAnalytics();
-  }, [loadAnalytics]);
+    await refreshEvents();
+    setRefreshing(false);
+  }, [refreshEvents]);
 
-  if (loading) {
+  // Show loading state
+  const loading = authLoading || eventsLoading;
+  
+  if (loading && !refreshing) {
     return <LoadingState message="Loading analytics..." />;
+  }
+  
+  // Show connect prompt if not signed in
+  if (!isSignedIn) {
+    return (
+      <ThemedView style={styles.container}>
+        <CalendarConnectPrompt
+          onConnect={signIn}
+          isLoading={authLoading}
+          isDark={isDark}
+        />
+      </ThemedView>
+    );
   }
 
   return (
@@ -657,5 +681,70 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  // Calendar Connect Prompt styles
+  connectPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#f5f5f5',
+  },
+  connectPromptDark: {
+    backgroundColor: '#121212',
+  },
+  connectIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  connectIconContainerDark: {
+    backgroundColor: '#1e3a5f',
+  },
+  connectTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  connectTitleDark: {
+    color: '#fff',
+  },
+  connectDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  connectDescriptionDark: {
+    color: '#aaa',
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  connectButtonDisabled: {
+    opacity: 0.7,
+  },
+  connectButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

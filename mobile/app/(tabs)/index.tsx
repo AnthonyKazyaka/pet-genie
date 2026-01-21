@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -6,13 +6,17 @@ import {
   RefreshControl,
   TouchableOpacity,
   useColorScheme,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
-import { VisitCard } from '@/components/VisitCard';
+import { SwipeableVisitCard } from '@/components/SwipeableVisitCard';
 import { EmptyState, LoadingState } from '@/components/EmptyState';
-import { useVisitRecords, useAnalytics, useSettings } from '@/hooks';
+import { useVisitRecords, useAnalytics, useSettings, useAuth, useCalendarEvents } from '@/hooks';
+import { HapticFeedback } from '@/services';
 import {
   CalendarEvent,
   VisitEvent,
@@ -60,83 +64,48 @@ function formatDateHeader(date: Date): string {
 }
 
 /**
- * Generate mock visits for demonstration
- * In production, this would fetch from Google Calendar API
+ * Prompt to connect Google Calendar when not authenticated
  */
-function generateMockVisits(): CalendarEvent[] {
-  const today = new Date();
-  const baseDate = today.toISOString().split('T')[0];
-
-  return [
-    {
-      id: 'mock_1',
-      calendarId: 'work',
-      title: 'Morning Drop-in - Max & Bella',
-      clientName: 'Johnson Family',
-      location: '123 Oak Street',
-      start: `${baseDate}T08:00:00`,
-      end: `${baseDate}T08:30:00`,
-      allDay: false,
-      status: 'confirmed',
-      isWorkEvent: true,
-      serviceInfo: {
-        type: 'drop-in',
-        duration: 30,
-        petName: 'Max & Bella',
-      },
-    },
-    {
-      id: 'mock_2',
-      calendarId: 'work',
-      title: 'Walk - Luna',
-      clientName: 'Smith Residence',
-      location: '456 Maple Ave',
-      start: `${baseDate}T10:00:00`,
-      end: `${baseDate}T11:00:00`,
-      allDay: false,
-      status: 'confirmed',
-      isWorkEvent: true,
-      serviceInfo: {
-        type: 'walk',
-        duration: 60,
-        petName: 'Luna',
-      },
-    },
-    {
-      id: 'mock_3',
-      calendarId: 'work',
-      title: 'Afternoon Drop-in - Whiskers',
-      clientName: 'Garcia Home',
-      location: '789 Pine Lane',
-      start: `${baseDate}T14:00:00`,
-      end: `${baseDate}T14:30:00`,
-      allDay: false,
-      status: 'confirmed',
-      isWorkEvent: true,
-      serviceInfo: {
-        type: 'drop-in',
-        duration: 30,
-        petName: 'Whiskers',
-      },
-    },
-    {
-      id: 'mock_4',
-      calendarId: 'work',
-      title: 'Evening Visit - Charlie',
-      clientName: 'Williams Family',
-      location: '321 Elm Court',
-      start: `${baseDate}T18:00:00`,
-      end: `${baseDate}T19:00:00`,
-      allDay: false,
-      status: 'confirmed',
-      isWorkEvent: true,
-      serviceInfo: {
-        type: 'drop-in',
-        duration: 60,
-        petName: 'Charlie',
-      },
-    },
-  ];
+function CalendarConnectPrompt({
+  onConnect,
+  isLoading,
+  isDark,
+}: {
+  onConnect: () => void;
+  isLoading: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <View style={[styles.connectPrompt, isDark && styles.connectPromptDark]}>
+      <View style={[styles.connectIconContainer, isDark && styles.connectIconContainerDark]}>
+        <FontAwesome name="calendar" size={48} color={isDark ? '#60A5FA' : '#2563EB'} />
+      </View>
+      <Text style={[styles.connectTitle, isDark && styles.connectTitleDark]}>
+        Connect Your Calendar
+      </Text>
+      <Text style={[styles.connectDescription, isDark && styles.connectDescriptionDark]}>
+        Link your Google Calendar to see your pet-sitting visits, track check-ins, and manage your schedule.
+      </Text>
+      <TouchableOpacity
+        style={[styles.connectButton, isLoading && styles.connectButtonDisabled]}
+        onPress={() => {
+          HapticFeedback.selection();
+          onConnect();
+        }}
+        disabled={isLoading}
+        activeOpacity={0.8}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <FontAwesome name="google" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.connectButtonText}>Connect Google Calendar</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 /**
@@ -224,66 +193,74 @@ export default function TodayScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { visitRecords, getByEventKey, getOrCreate } = useVisitRecords();
+  const { visitRecords, getByEventKey, getOrCreate, checkIn, checkOut, update } = useVisitRecords();
   const { checkWorkloadWarnings } = useAnalytics();
   const { settings } = useSettings();
+  
+  // Auth state for Google Calendar
+  const { isSignedIn, isLoading: authLoading, signIn } = useAuth();
+  
+  // Get today's date range for calendar events
+  const dateRange = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return { start, end };
+  }, []);
+  
+  // Fetch calendar events for today
+  const { events: calendarEvents, loading: eventsLoading, refresh: refreshEvents } = useCalendarEvents(dateRange);
+  
   const [visits, setVisits] = useState<VisitEvent[]>([]);
   const [warnings, setWarnings] = useState<WorkloadWarning[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentDate] = useState(new Date());
 
-  /**
-   * Load visits and merge with visit records
-   */
-  const loadVisits = useCallback(async () => {
-    try {
-      // In production, this would fetch from Google Calendar
-      const events = generateMockVisits();
-
-      // Merge events with visit records
-      const mergedVisits: VisitEvent[] = events.map(event => {
-        const record = getByEventKey(event.id, event.calendarId);
-        return {
-          ...event,
-          visitRecord: record
-            ? {
-                id: record.id,
-                status: record.status,
-                notes: record.notes,
-                checkInAt: record.checkInAt,
-                checkOutAt: record.checkOutAt,
-              }
-            : undefined,
-        };
-      });
-
-      // Sort by start time
-      mergedVisits.sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
-      );
-
-      setVisits(mergedVisits);
-    } catch (error) {
-      console.error('Error loading visits:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // Merge calendar events with visit records
+  useEffect(() => {
+    if (!isSignedIn || !calendarEvents) {
+      setVisits([]);
+      return;
     }
-  }, [getByEventKey]);
+    
+    const mergedVisits: VisitEvent[] = calendarEvents.map(event => {
+      const record = getByEventKey(event.id, event.calendarId);
+      return {
+        ...event,
+        visitRecord: record
+          ? {
+              id: record.id,
+              status: record.status,
+              notes: record.notes,
+              checkInAt: record.checkInAt,
+              checkOutAt: record.checkOutAt,
+            }
+          : undefined,
+      };
+    });
+
+    // Sort by start time
+    mergedVisits.sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+    );
+
+    setVisits(mergedVisits);
+  }, [isSignedIn, calendarEvents, getByEventKey, visitRecords]);
 
   /**
    * Handle pull to refresh
    */
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadVisits();
-  }, [loadVisits]);
+    await refreshEvents();
+    setRefreshing(false);
+  }, [refreshEvents]);
 
   /**
    * Navigate to visit detail
    */
   const handleVisitPress = async (visit: VisitEvent) => {
+    HapticFeedback.selection();
     // Ensure visit record exists
     const record = await getOrCreate({
       eventId: visit.id,
@@ -296,27 +273,101 @@ export default function TodayScreen() {
   };
 
   /**
+   * Handle check-in action
+   */
+  const handleCheckIn = async (visit: VisitEvent) => {
+    try {
+      // Ensure visit record exists first
+      const record = await getOrCreate({
+        eventId: visit.id,
+        calendarId: visit.calendarId,
+      });
+      
+      // Check in using the record ID
+      await checkIn(record.id);
+      
+      // Refresh the visits
+      await refreshEvents();
+    } catch (error) {
+      console.error('Error checking in:', error);
+      Alert.alert('Error', 'Failed to check in. Please try again.');
+    }
+  };
+
+  /**
+   * Handle check-out action
+   */
+  const handleCheckOut = async (visit: VisitEvent) => {
+    try {
+      const record = await getOrCreate({
+        eventId: visit.id,
+        calendarId: visit.calendarId,
+      });
+      
+      // Check out using the record ID
+      await checkOut(record.id);
+      
+      // Refresh the visits
+      await refreshEvents();
+    } catch (error) {
+      console.error('Error checking out:', error);
+      Alert.alert('Error', 'Failed to check out. Please try again.');
+    }
+  };
+
+  /**
+   * Handle cancel visit action
+   */
+  const handleCancelVisit = (visit: VisitEvent) => {
+    Alert.alert(
+      'Cancel Visit',
+      `Are you sure you want to cancel this visit for ${visit.clientName || visit.title}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const record = await getOrCreate({
+                eventId: visit.id,
+                calendarId: visit.calendarId,
+              });
+              await update({
+                id: record.id,
+                status: 'cancelled',
+              });
+              await refreshEvents();
+            } catch (error) {
+              console.error('Error cancelling visit:', error);
+              Alert.alert('Error', 'Failed to cancel visit. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  /**
    * Get status for display
    */
   const getVisitStatus = (visit: VisitEvent): VisitStatus => {
     return visit.visitRecord?.status || 'scheduled';
   };
 
-  // Load visits on mount
-  useEffect(() => {
-    loadVisits();
-  }, [loadVisits, visitRecords]);
-
   // Check workload warnings when visits or settings change
   useEffect(() => {
-    const events = generateMockVisits();
+    if (!isSignedIn || !calendarEvents) {
+      setWarnings([]);
+      return;
+    }
     const workloadWarnings = checkWorkloadWarnings(
       visitRecords,
-      events,
+      calendarEvents,
       settings
     );
     setWarnings(workloadWarnings);
-  }, [visitRecords, settings, checkWorkloadWarnings]);
+  }, [isSignedIn, calendarEvents, visitRecords, settings, checkWorkloadWarnings]);
 
   // Stats calculation
   const completedCount = visits.filter(
@@ -331,11 +382,28 @@ export default function TodayScreen() {
 
   // Navigate to analytics when warning is tapped
   const handleWarningPress = () => {
+    HapticFeedback.selection();
     router.push('/(tabs)/analytics' as any);
   };
 
-  if (loading) {
+  // Show loading state
+  const loading = authLoading || eventsLoading;
+  
+  if (loading && !refreshing) {
     return <LoadingState type="skeleton-today" />;
+  }
+  
+  // Show connect prompt if not signed in
+  if (!isSignedIn) {
+    return (
+      <ThemedView style={styles.container}>
+        <CalendarConnectPrompt
+          onConnect={signIn}
+          isLoading={authLoading}
+          isDark={isDark}
+        />
+      </ThemedView>
+    );
   }
 
   return (
@@ -371,38 +439,44 @@ export default function TodayScreen() {
       {/* Date Header */}
       <View style={styles.dateHeader}>
         <Text style={[styles.dateText, isDark && styles.dateTextDark]}>
-          {formatDateHeader(currentDate)}
+          {formatDateHeader(dateRange.start)}
         </Text>
       </View>
 
       {/* Visits List */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {visits.length === 0 ? (
-          <EmptyState
-            title="No visits today"
-            message="Your schedule is clear for today. Enjoy your day off!"
-            icon={<FontAwesome name="calendar-o" size={48} color="#ccc" />}
-          />
-        ) : (
-          visits.map(visit => (
-            <VisitCard
-              key={visit.id}
-              time={formatTime(visit.start)}
-              clientName={visit.clientName || visit.title}
-              serviceType={visit.serviceInfo?.type}
-              status={getVisitStatus(visit)}
-              location={visit.location}
-              onPress={() => handleVisitPress(visit)}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {visits.length === 0 ? (
+            <EmptyState
+              title="No visits today"
+              message="Your schedule is clear for today. Enjoy your day off!"
+              icon={<FontAwesome name="calendar-o" size={48} color="#ccc" />}
             />
-          ))
-        )}
-      </ScrollView>
+          ) : (
+            visits.map(visit => (
+              <SwipeableVisitCard
+                key={visit.id}
+                time={formatTime(visit.start)}
+                clientName={visit.clientName || visit.title}
+                serviceType={visit.serviceInfo?.type}
+                status={getVisitStatus(visit)}
+                location={visit.location}
+                onPress={() => handleVisitPress(visit)}
+                onCheckIn={() => handleCheckIn(visit)}
+                onCheckOut={() => handleCheckOut(visit)}
+                onEdit={() => handleVisitPress(visit)}
+                onCancel={() => handleCancelVisit(visit)}
+              />
+            ))
+          )}
+        </ScrollView>
+      </GestureHandlerRootView>
     </ThemedView>
   );
 }
@@ -548,5 +622,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  // Calendar Connect Prompt styles
+  connectPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#f5f5f5',
+  },
+  connectPromptDark: {
+    backgroundColor: '#121212',
+  },
+  connectIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  connectIconContainerDark: {
+    backgroundColor: '#1e3a5f',
+  },
+  connectTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  connectTitleDark: {
+    color: '#fff',
+  },
+  connectDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  connectDescriptionDark: {
+    color: '#aaa',
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  connectButtonDisabled: {
+    opacity: 0.7,
+  },
+  connectButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

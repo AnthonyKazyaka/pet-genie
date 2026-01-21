@@ -7,12 +7,15 @@ import {
   RefreshControl,
   Dimensions,
   useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { LoadingState } from '@/components/EmptyState';
-import { useSettings, useRulesEngine } from '@/hooks';
+import { WeekView } from '@/components/WeekView';
+import { useSettings, useRulesEngine, useAuth, useCalendarEvents } from '@/hooks';
+import { HapticFeedback } from '@/services';
 import {
   CalendarEvent,
   WorkloadLevel,
@@ -25,6 +28,8 @@ import {
 
 const { width } = Dimensions.get('window');
 const DAY_WIDTH = (width - 48) / 7; // Account for padding
+
+type ViewMode = 'month' | 'week';
 
 /**
  * Get all days to display in month view (including padding days)
@@ -81,52 +86,48 @@ function isToday(date: Date): boolean {
 }
 
 /**
- * Generate mock events for the calendar
+ * Prompt to connect Google Calendar when not authenticated
  */
-function generateMockEvents(): CalendarEvent[] {
-  const events: CalendarEvent[] = [];
-  const today = new Date();
-
-  // Generate events for the month
-  for (let dayOffset = -15; dayOffset <= 15; dayOffset++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + dayOffset);
-
-    // Skip some days randomly
-    if (Math.random() > 0.6) continue;
-
-    const dateStr = date.toISOString().split('T')[0];
-    const eventCount = Math.floor(Math.random() * 4) + 1;
-
-    const services = ['drop-in', 'walk', 'overnight'];
-    const clients = ['Johnson Family', 'Smith Residence', 'Garcia Home', 'Williams Family'];
-    const hours = [7, 9, 11, 14, 16, 18];
-
-    for (let i = 0; i < eventCount && i < hours.length; i++) {
-      const service = services[Math.floor(Math.random() * services.length)];
-      const client = clients[Math.floor(Math.random() * clients.length)];
-      const duration = service === 'walk' ? 60 : service === 'overnight' ? 480 : 30;
-
-      events.push({
-        id: `event_${dateStr}_${i}`,
-        calendarId: 'work',
-        title: `${service === 'walk' ? 'Walk' : 'Drop-in'} - ${client}`,
-        clientName: client,
-        location: `${100 + i} Main Street`,
-        start: `${dateStr}T${String(hours[i]).padStart(2, '0')}:00:00`,
-        end: `${dateStr}T${String(hours[i] + Math.floor(duration / 60)).padStart(2, '0')}:${String(duration % 60).padStart(2, '0')}:00`,
-        allDay: false,
-        status: 'confirmed',
-        isWorkEvent: true,
-        serviceInfo: {
-          type: service as any,
-          duration,
-        },
-      });
-    }
-  }
-
-  return events;
+function CalendarConnectPrompt({
+  onConnect,
+  isLoading,
+  isDark,
+}: {
+  onConnect: () => void;
+  isLoading: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <View style={[styles.connectPrompt, isDark && styles.connectPromptDark]}>
+      <View style={[styles.connectIconContainer, isDark && styles.connectIconContainerDark]}>
+        <FontAwesome name="calendar" size={48} color={isDark ? '#60A5FA' : '#2563EB'} />
+      </View>
+      <Text style={[styles.connectTitle, isDark && styles.connectTitleDark]}>
+        Connect Your Calendar
+      </Text>
+      <Text style={[styles.connectDescription, isDark && styles.connectDescriptionDark]}>
+        Link your Google Calendar to view and manage your pet-sitting schedule.
+      </Text>
+      <TouchableOpacity
+        style={[styles.connectButton, isLoading && styles.connectButtonDisabled]}
+        onPress={() => {
+          HapticFeedback.selection();
+          onConnect();
+        }}
+        disabled={isLoading}
+        activeOpacity={0.8}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <FontAwesome name="google" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.connectButtonText}>Connect Google Calendar</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 /**
@@ -418,14 +419,46 @@ export default function CalendarScreen() {
   const isDark = colorScheme === 'dark';
   const { settings } = useSettings();
   const { getBurnoutIndicators } = useRulesEngine(settings);
+  
+  // Auth state for Google Calendar
+  const { isSignedIn, isLoading: authLoading, signIn } = useAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
 
-  // Generate mock events (in production, fetch from calendar)
-  const events = useMemo(() => generateMockEvents(), []);
+  // Calculate date range based on view mode
+  const dateRange = useMemo(() => {
+    if (viewMode === 'week') {
+      // Week view: start from Sunday of current week
+      const startOfWeek = new Date(currentDate);
+      const day = startOfWeek.getDay();
+      startOfWeek.setDate(startOfWeek.getDate() - day);
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      return { start: startOfWeek, end: endOfWeek };
+    } else {
+      // Month view with buffer
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const rangeStart = new Date(startOfMonth);
+      rangeStart.setDate(rangeStart.getDate() - 7);
+      const rangeEnd = new Date(endOfMonth);
+      rangeEnd.setDate(rangeEnd.getDate() + 7);
+      return { start: rangeStart, end: rangeEnd };
+    }
+  }, [currentDate, viewMode]);
+
+  // Fetch calendar events for the date range
+  const { events: calendarEvents, loading: eventsLoading, refresh: refreshEvents } = useCalendarEvents(dateRange);
+  
+  // Use empty array if not signed in
+  const events = useMemo(() => {
+    return isSignedIn && calendarEvents ? calendarEvents : [];
+  }, [isSignedIn, calendarEvents]);
 
   // Get days for current month view
   const monthDays = useMemo(() => {
@@ -459,6 +492,7 @@ export default function CalendarScreen() {
    * Navigate to previous month
    */
   const goToPrevMonth = useCallback(() => {
+    HapticFeedback.selection();
     setCurrentDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
     setSelectedDate(null);
   }, []);
@@ -467,23 +501,58 @@ export default function CalendarScreen() {
    * Navigate to next month
    */
   const goToNextMonth = useCallback(() => {
+    HapticFeedback.selection();
     setCurrentDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
     setSelectedDate(null);
+  }, []);
+
+  /**
+   * Navigate to previous week
+   */
+  const goToPrevWeek = useCallback(() => {
+    HapticFeedback.selection();
+    setCurrentDate((d) => {
+      const newDate = new Date(d);
+      newDate.setDate(d.getDate() - 7);
+      return newDate;
+    });
+  }, []);
+
+  /**
+   * Navigate to next week
+   */
+  const goToNextWeek = useCallback(() => {
+    HapticFeedback.selection();
+    setCurrentDate((d) => {
+      const newDate = new Date(d);
+      newDate.setDate(d.getDate() + 7);
+      return newDate;
+    });
   }, []);
 
   /**
    * Go to today
    */
   const goToToday = useCallback(() => {
+    HapticFeedback.selection();
     const today = new Date();
     setCurrentDate(today);
     setSelectedDate(today);
   }, []);
 
   /**
+   * Toggle view mode
+   */
+  const toggleViewMode = useCallback(() => {
+    HapticFeedback.selection();
+    setViewMode((mode) => (mode === 'month' ? 'week' : 'month'));
+  }, []);
+
+  /**
    * Handle day press
    */
   const handleDayPress = useCallback((date: Date) => {
+    HapticFeedback.light();
     setSelectedDate(date);
   }, []);
 
@@ -492,6 +561,7 @@ export default function CalendarScreen() {
    */
   const handleEventPress = useCallback(
     (event: CalendarEvent) => {
+      HapticFeedback.selection();
       // Find or create visit record and navigate
       router.push(`/visit/${event.id}` as any);
     },
@@ -503,17 +573,79 @@ export default function CalendarScreen() {
    */
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // In production, refetch calendar events
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await refreshEvents();
     setRefreshing(false);
-  }, []);
+  }, [refreshEvents]);
 
-  if (loading) {
+  // Show loading state
+  const loading = authLoading || eventsLoading;
+  
+  if (loading && !refreshing) {
     return <LoadingState type="skeleton-calendar" />;
+  }
+  
+  // Show connect prompt if not signed in
+  if (!isSignedIn) {
+    return (
+      <ThemedView style={styles.container}>
+        <CalendarConnectPrompt
+          onConnect={signIn}
+          isLoading={authLoading}
+          isDark={isDark}
+        />
+      </ThemedView>
+    );
+  }
+
+  // Render the View Mode Toggle component
+  const ViewModeToggleComponent = () => {
+    const isMonthView = viewMode === 'month';
+    const isWeekView = viewMode === 'week';
+    
+    return (
+      <View style={[styles.viewModeToggle, isDark && styles.viewModeToggleDark]}>
+        <TouchableOpacity
+          style={[styles.viewModeButton, isMonthView && styles.viewModeButtonActive]}
+          onPress={toggleViewMode}
+        >
+          <FontAwesome name="calendar" size={16} color={isMonthView ? '#fff' : '#2196F3'} />
+          <Text style={[styles.viewModeText, isMonthView && styles.viewModeTextActive]}>
+            Month
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewModeButton, isWeekView && styles.viewModeButtonActive]}
+          onPress={toggleViewMode}
+        >
+          <FontAwesome name="list" size={16} color={isWeekView ? '#fff' : '#2196F3'} />
+          <Text style={[styles.viewModeText, isWeekView && styles.viewModeTextActive]}>
+            Week
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Week view
+  if (viewMode === 'week') {
+    return (
+      <ThemedView style={styles.container}>
+        <ViewModeToggleComponent />
+        <WeekView
+          events={events}
+          startDate={currentDate}
+          onEventPress={handleEventPress}
+          onNavigatePrev={goToPrevWeek}
+          onNavigateNext={goToNextWeek}
+          onNavigateToday={goToToday}
+        />
+      </ThemedView>
+    );
   }
 
   return (
     <ThemedView style={styles.container}>
+      <ViewModeToggleComponent />
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -962,5 +1094,106 @@ const styles = StyleSheet.create({
   },
   statLabelDark: {
     color: '#999',
+  },
+  // Calendar Connect Prompt styles
+  connectPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#f5f5f5',
+  },
+  connectPromptDark: {
+    backgroundColor: '#121212',
+  },
+  connectIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  connectIconContainerDark: {
+    backgroundColor: '#1e3a5f',
+  },
+  connectTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  connectTitleDark: {
+    color: '#fff',
+  },
+  connectDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  connectDescriptionDark: {
+    color: '#aaa',
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  connectButtonDisabled: {
+    opacity: 0.7,
+  },
+  connectButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // View Mode Toggle styles
+  viewModeToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#f5f5f5',
+    gap: 8,
+  },
+  viewModeToggleDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  viewModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    gap: 6,
+  },
+  viewModeButtonActive: {
+    backgroundColor: '#2196F3',
+    borderColor: '#2196F3',
+  },
+  viewModeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2196F3',
+  },
+  viewModeTextActive: {
+    color: '#fff',
   },
 });

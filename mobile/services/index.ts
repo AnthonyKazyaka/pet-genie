@@ -11,3 +11,13 @@ export {
   WorkloadRules,
   DEFAULT_RULES,
 } from './rules-engine.service';
+export {
+  GoogleCalendarService,
+  type GoogleAuthState,
+  type GoogleCalendar,
+} from './google-calendar.service';
+export {
+  NotificationService,
+  type ScheduledNotification,
+} from './notification.service';
+export { HapticFeedback, haptic, type HapticType } from './haptic.service';

@@ -7,13 +7,16 @@ import {
   Switch,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
+  useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { Button } from '@/components/Button';
-import { useSettings } from '@/hooks';
+import { useSettings, useAuth } from '@/hooks';
 import { DEFAULT_SETTINGS } from '@/models';
+import { HapticFeedback } from '@/services';
 
 /**
  * Number Input Component
@@ -116,7 +119,10 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { settings, loading, updateSettings, resetSettings } = useSettings();
+  const { isSignedIn, isLoading: authLoading, userEmail, signIn, signOut } = useAuth();
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -196,8 +202,91 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Configure your work limits and preferences</Text>
+          <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>Settings</Text>
+          <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
+            Configure your work limits and preferences
+          </Text>
+        </View>
+
+        {/* Google Calendar Integration */}
+        <View style={styles.section}>
+          <SectionHeader icon="google" title="Google Calendar" />
+          
+          <View style={[styles.card, isDark && styles.cardDark]}>
+            {authLoading ? (
+              <View style={styles.googleLoadingContainer}>
+                <ActivityIndicator size="small" color="#2196F3" />
+                <Text style={[styles.googleLoadingText, isDark && styles.textDark]}>
+                  Loading...
+                </Text>
+              </View>
+            ) : isSignedIn ? (
+              <View style={styles.googleConnectedContainer}>
+                <View style={styles.googleConnectedInfo}>
+                  <View style={[styles.googleIconBadge, { backgroundColor: '#E8F5E9' }]}>
+                    <FontAwesome name="check" size={16} color="#4CAF50" />
+                  </View>
+                  <View style={styles.googleConnectedText}>
+                    <Text style={[styles.googleStatusText, isDark && styles.textDark]}>Connected</Text>
+                    {userEmail && (
+                      <Text style={[styles.googleEmailText, isDark && styles.textMutedDark]}>
+                        {userEmail}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.googleDisconnectButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'Disconnect Google Calendar',
+                      'Are you sure you want to disconnect your Google Calendar? You will need to sign in again to access your events.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Disconnect',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await HapticFeedback.medium();
+                            await signOut();
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <FontAwesome name="sign-out" size={16} color="#F44336" />
+                  <Text style={styles.googleDisconnectText}>Disconnect</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.googleConnectButton}
+                onPress={async () => {
+                  await HapticFeedback.medium();
+                  const success = await signIn();
+                  if (success) {
+                    Alert.alert('Connected!', 'Your Google Calendar is now connected.');
+                  } else {
+                    Alert.alert('Error', 'Failed to connect to Google Calendar. Please try again.');
+                  }
+                }}
+              >
+                <View style={[styles.googleIconBadge, { backgroundColor: '#FFF3E0' }]}>
+                  <FontAwesome name="google" size={18} color="#EA4335" />
+                </View>
+                <View style={styles.googleConnectTextContainer}>
+                  <Text style={[styles.googleConnectTitle, isDark && styles.textDark]}>
+                    Connect Google Calendar
+                  </Text>
+                  <Text style={[styles.googleConnectDesc, isDark && styles.textMutedDark]}>
+                    Sync your pet sitting appointments
+                  </Text>
+                </View>
+                <FontAwesome name="chevron-right" size={14} color={isDark ? '#666' : '#ccc'} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Quick Links */}
@@ -592,6 +681,95 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   linkDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  // Google Calendar styles
+  headerTitleDark: {
+    color: '#fff',
+  },
+  headerSubtitleDark: {
+    color: '#999',
+  },
+  cardDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  textDark: {
+    color: '#e0e0e0',
+  },
+  textMutedDark: {
+    color: '#999',
+  },
+  googleLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  googleLoadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  googleConnectedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  googleConnectedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  googleIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleConnectedText: {
+    gap: 2,
+  },
+  googleStatusText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  googleEmailText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  googleDisconnectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  googleDisconnectText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#F44336',
+  },
+  googleConnectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  googleConnectTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  googleConnectTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+  },
+  googleConnectDesc: {
     fontSize: 13,
     color: '#666',
     marginTop: 2,
