@@ -4,14 +4,15 @@ import {
   ScrollView,
   View,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { VisitCard } from '@/components/VisitCard';
 import { EmptyState, LoadingState } from '@/components/EmptyState';
-import { useVisitRecords } from '@/hooks';
-import { CalendarEvent, VisitEvent, VisitStatus } from '@/models';
+import { useVisitRecords, useAnalytics, useSettings } from '@/hooks';
+import { CalendarEvent, VisitEvent, VisitStatus, WorkloadWarning } from '@/models';
 
 /**
  * Format time from ISO string
@@ -126,10 +127,43 @@ function generateMockVisits(): CalendarEvent[] {
   ];
 }
 
+/**
+ * Warning Banner Component
+ */
+function WarningBanner({ warnings, onPress }: { warnings: WorkloadWarning[]; onPress: () => void }) {
+  if (warnings.length === 0) return null;
+  
+  const criticalWarnings = warnings.filter(w => w.severity === 'critical');
+  const isCritical = criticalWarnings.length > 0;
+  
+  return (
+    <TouchableOpacity
+      style={[styles.warningBanner, isCritical && styles.warningBannerHigh]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <FontAwesome name="exclamation-triangle" size={16} color={isCritical ? '#C62828' : '#E65100'} />
+      <View style={styles.warningContent}>
+        <Text style={[styles.warningTitle, isCritical && styles.warningTitleHigh]}>
+          {isCritical ? 'Workload Alert' : 'Workload Notice'}
+        </Text>
+        <Text style={styles.warningText} numberOfLines={1}>
+          {warnings[0].message}
+          {warnings.length > 1 ? ` (+${warnings.length - 1} more)` : ''}
+        </Text>
+      </View>
+      <FontAwesome name="chevron-right" size={14} color="#999" />
+    </TouchableOpacity>
+  );
+}
+
 export default function TodayScreen() {
   const router = useRouter();
   const { visitRecords, getByEventKey, getOrCreate } = useVisitRecords();
+  const { checkWorkloadWarnings } = useAnalytics();
+  const { settings } = useSettings();
   const [visits, setVisits] = useState<VisitEvent[]>([]);
+  const [warnings, setWarnings] = useState<WorkloadWarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentDate] = useState(new Date());
@@ -208,6 +242,17 @@ export default function TodayScreen() {
     loadVisits();
   }, [loadVisits, visitRecords]);
 
+  // Check workload warnings when visits or settings change
+  useEffect(() => {
+    const events = generateMockVisits();
+    const workloadWarnings = checkWorkloadWarnings(
+      visitRecords,
+      events,
+      settings
+    );
+    setWarnings(workloadWarnings);
+  }, [visitRecords, settings, checkWorkloadWarnings]);
+
   // Stats calculation
   const completedCount = visits.filter(
     v => v.visitRecord?.status === 'completed'
@@ -219,6 +264,11 @@ export default function TodayScreen() {
     v => !v.visitRecord || v.visitRecord.status === 'scheduled'
   ).length;
 
+  // Navigate to analytics when warning is tapped
+  const handleWarningPress = () => {
+    router.push('/(tabs)/analytics' as any);
+  };
+
   if (loading) {
     return <LoadingState message="Loading today's visits..." />;
   }
@@ -226,6 +276,9 @@ export default function TodayScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header Stats */}
+      {/* Workload Warning Banner */}
+      <WarningBanner warnings={warnings} onPress={handleWarningPress} />
+
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{scheduledCount}</Text>
@@ -336,5 +389,37 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E65100',
+    gap: 10,
+  },
+  warningBannerHigh: {
+    backgroundColor: '#FFEBEE',
+    borderLeftColor: '#C62828',
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E65100',
+  },
+  warningTitleHigh: {
+    color: '#C62828',
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
 });

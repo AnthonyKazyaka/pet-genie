@@ -19,6 +19,7 @@ import { Button } from '@/components/Button';
 import { LoadingState } from '@/components/EmptyState';
 import { useVisitRecords, useClients, usePets, useEventClientMapping, useSettings } from '@/hooks';
 import { VisitRecord, Client, Pet, CalendarEvent } from '@/models';
+import { VisitSummaryService } from '@/services';
 
 function formatTime(isoString?: string): string {
   if (!isoString) return '--:--';
@@ -167,25 +168,28 @@ export default function VisitDetailScreen() {
   const handleCheckOut = async () => { if (!visitRecord) return; setSaving(true); try { const updated = await checkOut(visitRecord.id, notes); if (updated) setVisitRecord(updated); } catch { Alert.alert('Error', 'Failed to check out.'); } finally { setSaving(false); } };
   const handleSaveNotes = async () => { if (!visitRecord) return; setSaving(true); try { const updated = await updateNotes(visitRecord.id, notes); if (updated) { setVisitRecord(updated); Alert.alert('Saved', 'Notes saved.'); } } catch { Alert.alert('Error', 'Failed to save notes.'); } finally { setSaving(false); } };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = async (type: 'full' | 'text' = 'full') => {
     if (!event || !visitRecord) return;
     const summaryPets = clientPets.filter(p => selectedPetIds.includes(p.id));
-    const lines: string[] = ['═══════════════════════════════════', '       VISIT SUMMARY', '═══════════════════════════════════', '', `Client: ${client?.name || event.clientName || 'Unknown'}`];
-    if (event.location) lines.push(`Location: ${event.location}`);
-    lines.push('', 'VISIT DETAILS', '-----------------------------------', `Service: ${event.serviceInfo?.type || 'Visit'}`, `Scheduled: ${formatTime(event.start)} - ${formatTime(event.end)}`);
-    if (settings.includeTimestampsInSummary) { if (visitRecord.checkInAt) lines.push(`Check-in: ${formatDateTime(visitRecord.checkInAt)}`); if (visitRecord.checkOutAt) lines.push(`Check-out: ${formatDateTime(visitRecord.checkOutAt)}`); }
-    if (settings.includeDurationInSummary && visitRecord.checkInAt && visitRecord.checkOutAt) lines.push(`Duration: ${calculateDuration(visitRecord.checkInAt, visitRecord.checkOutAt)}`);
-    lines.push('');
-    if (settings.includePetDetailsInSummary && (summaryPets.length > 0 || event.serviceInfo?.petName)) {
-      lines.push('PETS', '-----------------------------------');
-      if (summaryPets.length > 0) summaryPets.forEach(pet => { lines.push(`• ${pet.name} (${pet.species}${pet.breed ? ` - ${pet.breed}` : ''})`); if (pet.careNotes) lines.push(`  Care notes: ${pet.careNotes}`); });
-      else if (event.serviceInfo?.petName) lines.push(`• ${event.serviceInfo.petName}`);
-      lines.push('');
+    const options = VisitSummaryService.getOptionsFromSettings(settings);
+    
+    let summary: string;
+    if (type === 'text') {
+      summary = VisitSummaryService.generateTextSummary(event, visitRecord, client, summaryPets);
+    } else {
+      summary = VisitSummaryService.generateSummary(event, visitRecord, client, summaryPets, options);
     }
-    if (visitRecord.notes) lines.push('NOTES', '-----------------------------------', visitRecord.notes, '');
-    lines.push('═══════════════════════════════════', `Generated: ${new Date().toLocaleString()}`);
-    try { await Clipboard.setStringAsync(lines.join('\n')); await markSummarySent(visitRecord.id); Alert.alert('Summary Copied', 'The visit summary has been copied to your clipboard.'); }
-    catch { Alert.alert('Error', 'Failed to copy summary.'); }
+    
+    try {
+      await Clipboard.setStringAsync(summary);
+      await markSummarySent(visitRecord.id);
+      Alert.alert(
+        type === 'text' ? 'Text Summary Copied' : 'Summary Copied',
+        'The visit summary has been copied to your clipboard.'
+      );
+    } catch {
+      Alert.alert('Error', 'Failed to copy summary.');
+    }
   };
 
   if (loading) return <LoadingState message="Loading visit details..." />;
@@ -238,7 +242,12 @@ export default function VisitDetailScreen() {
           <View style={styles.actionsCard}>
             {canCheckIn && <Button title="Start Visit" onPress={handleCheckIn} variant="success" size="large" loading={saving} style={styles.actionButton} />}
             {canCheckOut && <Button title="Complete Visit" onPress={handleCheckOut} variant="success" size="large" loading={saving} style={styles.actionButton} />}
-            {isCompleted && <Button title="Generate Summary" onPress={handleGenerateSummary} variant="primary" size="large" style={styles.actionButton} />}
+            {isCompleted && (
+              <>
+                <Button title="Generate Full Summary" onPress={() => handleGenerateSummary('full')} variant="primary" size="large" style={styles.actionButton} />
+                <Button title="Copy for Text Message" onPress={() => handleGenerateSummary('text')} variant="outline" size="medium" style={styles.actionButton} />
+              </>
+            )}
           </View>
 
           {isCompleted && visitRecord.checkInAt && visitRecord.checkOutAt && <View style={styles.durationCard}><Text style={styles.durationLabel}>Actual Duration</Text><Text style={styles.durationValue}>{calculateDuration(visitRecord.checkInAt, visitRecord.checkOutAt)}</Text></View>}

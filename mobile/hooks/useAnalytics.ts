@@ -56,14 +56,18 @@ export function useAnalytics() {
   ): DailyStats => {
     const dateStr = date.toISOString().split('T')[0];
     
+    // Ensure arrays are valid
+    const safeRecords = Array.isArray(visitRecords) ? visitRecords : [];
+    const safeEvents = Array.isArray(events) ? events : [];
+    
     // Filter events for this day
-    const dayEvents = events.filter(e => {
+    const dayEvents = safeEvents.filter(e => {
       const eventDate = e.start.split('T')[0];
       return eventDate === dateStr;
     });
 
     // Filter visit records for these events
-    const dayRecords = visitRecords.filter(r => {
+    const dayRecords = safeRecords.filter(r => {
       const event = dayEvents.find(e => e.id === r.eventId && e.calendarId === r.calendarId);
       return !!event;
     });
