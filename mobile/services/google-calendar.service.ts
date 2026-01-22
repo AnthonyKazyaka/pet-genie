@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { CalendarEvent, DateRange } from '@/models';
+import { EventProcessorService } from './event-processor.service';
 
 // Google OAuth Configuration from app.config.ts
 const GOOGLE_CLIENT_ID_WEB = Constants.expoConfig?.extra?.googleClientIds?.web ?? '';
@@ -424,6 +425,7 @@ class GoogleCalendarServiceClass {
 
   /**
    * Parse Google Calendar event to our model
+   * Uses EventProcessorService to properly classify work vs personal events
    */
   private parseGoogleEvent(
     raw: RawGoogleCalendarEvent,
@@ -437,26 +439,10 @@ class GoogleCalendarServiceClass {
       ? `${raw.end.date}T23:59:59`
       : raw.end.dateTime!;
 
-    // Try to extract client name from title or attendees
-    let clientName: string | undefined;
-    if (raw.attendees && raw.attendees.length > 0) {
-      const client = raw.attendees.find((a) => a.responseStatus !== 'declined');
-      clientName = client?.displayName || client?.email;
-    }
-
-    // Try to detect service type from title
     const title = raw.summary || '(No title)';
-    const titleLower = title.toLowerCase();
-    let serviceType: 'drop-in' | 'walk' | 'overnight' | undefined;
-    if (titleLower.includes('walk')) {
-      serviceType = 'walk';
-    } else if (titleLower.includes('overnight') || titleLower.includes('boarding')) {
-      serviceType = 'overnight';
-    } else if (titleLower.includes('drop-in') || titleLower.includes('visit')) {
-      serviceType = 'drop-in';
-    }
-
-    return {
+    
+    // Build the base event
+    const baseEvent: CalendarEvent = {
       id: raw.id,
       calendarId,
       title,
@@ -467,10 +453,11 @@ class GoogleCalendarServiceClass {
       allDay: isAllDay,
       recurringEventId: raw.recurringEventId,
       status: (raw.status as 'confirmed' | 'tentative' | 'cancelled') || 'confirmed',
-      isWorkEvent: true,
-      clientName,
-      serviceInfo: serviceType ? { type: serviceType, duration: 30 } : undefined,
     };
+
+    // Use EventProcessorService to classify and enrich the event
+    // This ensures consistent work event detection with the website
+    return EventProcessorService.processEvent(baseEvent);
   }
 }
 
