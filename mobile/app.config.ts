@@ -13,6 +13,25 @@ const iosUrlScheme = googleClientIdIos
   ? `com.googleusercontent.apps.${googleClientIdIos.replace('.apps.googleusercontent.com', '')}`
   : '';
 
+// Build the plugins array
+const plugins: ExpoConfig['plugins'] = [
+  ...(baseConfig.expo?.plugins ?? []),
+];
+
+// Google Sign-In plugin requires iosUrlScheme even for Android-only builds
+// Use a placeholder scheme if iOS client ID is not configured
+const hasGoogleSignInConfig = googleClientIdAndroid || googleClientIdIos;
+if (hasGoogleSignInConfig) {
+  // The plugin requires iosUrlScheme - use placeholder if not configured for iOS
+  const effectiveIosUrlScheme = iosUrlScheme || 'com.googleusercontent.apps.placeholder';
+  plugins.push([
+    '@react-native-google-signin/google-signin',
+    {
+      iosUrlScheme: effectiveIosUrlScheme,
+    },
+  ]);
+}
+
 const appConfig: ExpoConfig = {
   ...baseConfig.expo,
   android: {
@@ -32,16 +51,7 @@ const appConfig: ExpoConfig = {
       },
     }),
   },
-  plugins: [
-    ...(baseConfig.expo?.plugins ?? []),
-    // Google Sign-In plugin configuration
-    [
-      '@react-native-google-signin/google-signin',
-      {
-        iosUrlScheme,
-      },
-    ],
-  ],
+  plugins,
   extra: {
     ...baseConfig.expo?.extra,
     googleClientIds: {
