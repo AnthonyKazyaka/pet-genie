@@ -45,3 +45,5 @@ Thumbs.db
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+mobile/.env
+.env
