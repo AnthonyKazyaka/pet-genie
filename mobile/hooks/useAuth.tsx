@@ -2,6 +2,7 @@
  * Authentication Context and Hook
  * 
  * Provides app-wide authentication state for Google Calendar integration
+ * using @react-native-google-signin/google-signin
  */
 
 import React, {
@@ -44,8 +45,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<GoogleAuthState>({
     isSignedIn: false,
     accessToken: null,
-    refreshToken: null,
-    tokenExpiry: null,
     userEmail: null,
   });
   const [isLoading, setIsLoading] = useState(true);

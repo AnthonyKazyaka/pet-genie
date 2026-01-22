@@ -1,44 +1,38 @@
 /**
  * Google Calendar Service for Mobile
  * 
- * Handles OAuth 2.0 authentication and Calendar API integration
- * using expo-auth-session for the auth flow and expo-secure-store
- * for token storage.
+ * Handles authentication via @react-native-google-signin/google-signin
+ * and Calendar API integration. Uses secure storage only for caching
+ * metadata; Google Sign-In manages the actual tokens and session.
  */
 
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { CalendarEvent, DateRange } from '@/models';
 
-// Ensure browser redirect is handled
-WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth Configuration
+// Google OAuth Configuration from app.config.ts
 const GOOGLE_CLIENT_ID_WEB = Constants.expoConfig?.extra?.googleClientIds?.web ?? '';
 const GOOGLE_CLIENT_ID_IOS = Constants.expoConfig?.extra?.googleClientIds?.ios ?? '';
 const GOOGLE_CLIENT_ID_ANDROID = Constants.expoConfig?.extra?.googleClientIds?.android ?? '';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
-const DISCOVERY = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
 
-// Secure storage keys
-const TOKEN_KEY = 'google_access_token';
-const REFRESH_TOKEN_KEY = 'google_refresh_token';
-const TOKEN_EXPIRY_KEY = 'google_token_expiry';
+// Secure storage keys (for caching user metadata only)
 const USER_EMAIL_KEY = 'google_user_email';
+
+// Track if GoogleSignin has been configured
+let isConfigured = false;
 
 export interface GoogleAuthState {
   isSignedIn: boolean;
   accessToken: string | null;
-  refreshToken: string | null;
-  tokenExpiry: Date | null;
   userEmail: string | null;
 }
 
@@ -76,43 +70,24 @@ export interface RawGoogleCalendarEvent {
 }
 
 /**
- * Get the appropriate client ID based on platform
+ * Configure Google Sign-In with the appropriate client IDs and scopes
  */
-function getClientId(): string {
-  switch (Platform.OS) {
-    case 'ios':
-      return GOOGLE_CLIENT_ID_IOS;
-    case 'android':
-      return GOOGLE_CLIENT_ID_ANDROID;
-    default:
-      return GOOGLE_CLIENT_ID_WEB;
-  }
-}
+function configureGoogleSignIn(): void {
+  if (isConfigured) return;
 
-/**
- * Get the redirect URI for the current platform
- */
-function getRedirectUri(): string {
-  if (Platform.OS === 'android') {
-    if (!GOOGLE_CLIENT_ID_ANDROID) {
-      throw new Error('Missing EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID');
-    }
-    const clientIdBase = GOOGLE_CLIENT_ID_ANDROID.replace('.apps.googleusercontent.com', '');
-    return `com.googleusercontent.apps.${clientIdBase}:/oauth2redirect`;
-  }
+  // Determine platform-specific configuration
+  const iosClientId = GOOGLE_CLIENT_ID_IOS || undefined;
+  const webClientId = GOOGLE_CLIENT_ID_WEB || undefined;
 
-  if (Platform.OS === 'ios') {
-    if (!GOOGLE_CLIENT_ID_IOS) {
-      throw new Error('Missing EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS');
-    }
-    const clientIdBase = GOOGLE_CLIENT_ID_IOS.replace('.apps.googleusercontent.com', '');
-    return `com.googleusercontent.apps.${clientIdBase}:/oauth2redirect`;
-  }
-
-  return AuthSession.makeRedirectUri({
-    scheme: 'petgenie',
-    path: 'oauth/callback',
+  GoogleSignin.configure({
+    scopes: SCOPES,
+    webClientId, // Required for Android
+    iosClientId, // Required for iOS
+    offlineAccess: true, // Request refresh token
   });
+
+  isConfigured = true;
+  console.log('[GoogleAuth] Configured for platform:', Platform.OS);
 }
 
 /**
@@ -120,12 +95,12 @@ function getRedirectUri(): string {
  */
 class GoogleCalendarServiceClass {
   private accessToken: string | null = null;
-  private refreshToken: string | null = null;
-  private tokenExpiry: Date | null = null;
   private userEmail: string | null = null;
   private listeners: Set<(state: GoogleAuthState) => void> = new Set();
 
   constructor() {
+    // Configure Google Sign-In on instantiation
+    configureGoogleSignIn();
     this.loadStoredTokens();
   }
 
@@ -154,8 +129,6 @@ class GoogleCalendarServiceClass {
     return {
       isSignedIn: this.isSignedIn(),
       accessToken: this.accessToken,
-      refreshToken: this.refreshToken,
-      tokenExpiry: this.tokenExpiry,
       userEmail: this.userEmail,
     };
   }
@@ -164,36 +137,46 @@ class GoogleCalendarServiceClass {
    * Check if user is signed in with valid token
    */
   isSignedIn(): boolean {
-    if (!this.accessToken) return false;
-    if (this.tokenExpiry && this.tokenExpiry <= new Date()) {
-      // Token expired - try to refresh
-      return false;
-    }
-    return true;
+    return !!this.accessToken;
   }
 
   /**
-   * Load stored tokens from secure storage
+   * Load stored metadata and check current sign-in state
+   * Google Sign-In manages the actual tokens; we just cache user metadata
    */
   async loadStoredTokens(): Promise<void> {
     try {
-      const [token, refreshToken, expiryStr, email] = await Promise.all([
-        SecureStore.getItemAsync(TOKEN_KEY),
-        SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
-        SecureStore.getItemAsync(TOKEN_EXPIRY_KEY),
-        SecureStore.getItemAsync(USER_EMAIL_KEY),
-      ]);
-
-      this.accessToken = token;
-      this.refreshToken = refreshToken;
+      // Load cached user email
+      const email = await SecureStore.getItemAsync(USER_EMAIL_KEY);
       this.userEmail = email;
 
-      if (expiryStr) {
-        this.tokenExpiry = new Date(expiryStr);
-        
-        // If token is expired but we have refresh token, try to refresh
-        if (this.tokenExpiry <= new Date() && this.refreshToken) {
-          await this.refreshAccessToken();
+      // Check if user is currently signed in via Google Sign-In
+      const isSignedIn = await GoogleSignin.hasPreviousSignIn();
+      
+      if (isSignedIn) {
+        try {
+          // Try to get current user silently (refreshes tokens if needed)
+          const response = await GoogleSignin.signInSilently();
+          
+          if (response.type === 'success') {
+            // Get fresh access token
+            const tokens = await GoogleSignin.getTokens();
+            this.accessToken = tokens.accessToken;
+            this.userEmail = response.data.user.email;
+            await SecureStore.setItemAsync(USER_EMAIL_KEY, response.data.user.email);
+          } else if (response.type === 'noSavedCredentialFound') {
+            // No credentials found, user needs to sign in
+            console.log('[GoogleAuth] No saved credentials found');
+            this.accessToken = null;
+          }
+        } catch (error) {
+          if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_REQUIRED) {
+            // User was signed in but session expired, need to sign in again
+            console.log('[GoogleAuth] Session expired, sign in required');
+            this.accessToken = null;
+          } else {
+            console.error('[GoogleAuth] Silent sign-in failed:', error);
+          }
         }
       }
 
@@ -204,200 +187,117 @@ class GoogleCalendarServiceClass {
   }
 
   /**
-   * Store tokens in secure storage
+   * Clear stored metadata
    */
-  private async storeTokens(
-    accessToken: string,
-    refreshToken: string | null,
-    expiresIn: number
-  ): Promise<void> {
-    const expiry = new Date(Date.now() + expiresIn * 1000);
-
-    await Promise.all([
-      SecureStore.setItemAsync(TOKEN_KEY, accessToken),
-      refreshToken
-        ? SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken)
-        : Promise.resolve(),
-      SecureStore.setItemAsync(TOKEN_EXPIRY_KEY, expiry.toISOString()),
-    ]);
-
-    this.accessToken = accessToken;
-    if (refreshToken) {
-      this.refreshToken = refreshToken;
-    }
-    this.tokenExpiry = expiry;
-    this.notifyListeners();
-  }
-
-  /**
-   * Clear all stored tokens
-   */
-  private async clearStoredTokens(): Promise<void> {
-    await Promise.all([
-      SecureStore.deleteItemAsync(TOKEN_KEY),
-      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
-      SecureStore.deleteItemAsync(TOKEN_EXPIRY_KEY),
-      SecureStore.deleteItemAsync(USER_EMAIL_KEY),
-    ]);
-
+  private async clearStoredMetadata(): Promise<void> {
+    await SecureStore.deleteItemAsync(USER_EMAIL_KEY);
     this.accessToken = null;
-    this.refreshToken = null;
-    this.tokenExpiry = null;
     this.userEmail = null;
     this.notifyListeners();
   }
 
   /**
-   * Initiate OAuth sign-in flow
+   * Initiate Google Sign-In flow
    */
   async signIn(): Promise<boolean> {
     try {
-      const clientId = getClientId();
-      const redirectUri = getRedirectUri();
+      console.log('[GoogleAuth] Starting sign-in flow for platform:', Platform.OS);
 
-      console.log('[GoogleAuth] Platform:', Platform.OS);
-      console.log('[GoogleAuth] clientId:', clientId);
-      console.log('[GoogleAuth] redirectUri:', redirectUri);
+      // Check for Google Play Services on Android
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
 
-      const request = new AuthSession.AuthRequest({
-        clientId,
-        scopes: SCOPES,
-        redirectUri,
-        responseType: AuthSession.ResponseType.Code,
-        usePKCE: true,
-        extraParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      });
+      const response = await GoogleSignin.signIn();
 
-      const result = await request.promptAsync(DISCOVERY, { useProxy: false });
+      if (isSuccessResponse(response)) {
+        // Get access token for API calls
+        const tokens = await GoogleSignin.getTokens();
+        this.accessToken = tokens.accessToken;
+        this.userEmail = response.data.user.email;
 
-      if (result.type === 'success' && result.params.code) {
-        // Exchange code for tokens
-        const tokenResult = await AuthSession.exchangeCodeAsync(
-          {
-            clientId,
-            code: result.params.code,
-            redirectUri,
-            extraParams: {
-              code_verifier: request.codeVerifier!,
-            },
-          },
-          DISCOVERY
-        );
+        // Cache user email
+        await SecureStore.setItemAsync(USER_EMAIL_KEY, response.data.user.email);
 
-        await this.storeTokens(
-          tokenResult.accessToken,
-          tokenResult.refreshToken ?? null,
-          tokenResult.expiresIn ?? 3600
-        );
-
-        // Fetch user email
-        await this.fetchUserEmail();
-
+        this.notifyListeners();
+        console.log('[GoogleAuth] Sign-in successful for:', this.userEmail);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Sign in failed:', error);
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log('[GoogleAuth] User cancelled sign-in');
+            break;
+          case statusCodes.IN_PROGRESS:
+            console.log('[GoogleAuth] Sign-in already in progress');
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            console.error('[GoogleAuth] Google Play Services not available');
+            break;
+          default:
+            console.error('[GoogleAuth] Sign-in failed with code:', error.code, error.message);
+        }
+      } else {
+        console.error('[GoogleAuth] Sign-in failed:', error);
+      }
       return false;
     }
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using Google Sign-In's built-in refresh
    */
   async refreshAccessToken(): Promise<boolean> {
-    if (!this.refreshToken) {
-      return false;
-    }
-
     try {
-      const clientId = getClientId();
-
-      const tokenResult = await AuthSession.refreshAsync(
-        {
-          clientId,
-          refreshToken: this.refreshToken,
-        },
-        DISCOVERY
-      );
-
-      await this.storeTokens(
-        tokenResult.accessToken,
-        tokenResult.refreshToken ?? this.refreshToken,
-        tokenResult.expiresIn ?? 3600
-      );
-
+      // Google Sign-In handles token refresh automatically
+      // We just need to get fresh tokens
+      const tokens = await GoogleSignin.getTokens();
+      this.accessToken = tokens.accessToken;
+      this.notifyListeners();
       return true;
     } catch (error) {
-      console.error('Token refresh failed:', error);
-      // Clear tokens on refresh failure
-      await this.clearStoredTokens();
+      console.error('[GoogleAuth] Token refresh failed:', error);
+      // Token refresh failed, clear state and require new sign-in
+      await this.clearStoredMetadata();
       return false;
     }
   }
 
   /**
-   * Sign out and revoke tokens
+   * Sign out and revoke access
    */
   async signOut(): Promise<void> {
-    if (this.accessToken) {
-      try {
-        await AuthSession.revokeAsync(
-          { token: this.accessToken },
-          DISCOVERY
-        );
-      } catch (error) {
-        console.error('Token revocation failed:', error);
-      }
+    try {
+      // Revoke access to remove all granted permissions
+      await GoogleSignin.revokeAccess();
+    } catch (error) {
+      console.error('[GoogleAuth] Revoke access failed:', error);
     }
-
-    await this.clearStoredTokens();
-  }
-
-  /**
-   * Fetch user email from Google
-   */
-  private async fetchUserEmail(): Promise<void> {
-    if (!this.accessToken) return;
 
     try {
-      const response = await fetch(
-        'https://www.googleapis.com/oauth2/v2/userinfo',
-        {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        this.userEmail = data.email;
-        await SecureStore.setItemAsync(USER_EMAIL_KEY, data.email);
-        this.notifyListeners();
-      }
+      await GoogleSignin.signOut();
     } catch (error) {
-      console.error('Failed to fetch user email:', error);
+      console.error('[GoogleAuth] Sign out failed:', error);
     }
+
+    await this.clearStoredMetadata();
   }
 
   /**
-   * Ensure we have a valid access token
+   * Ensure we have a valid access token, refreshing if necessary
    */
   private async ensureValidToken(): Promise<string | null> {
-    if (this.accessToken && this.tokenExpiry && this.tokenExpiry > new Date()) {
+    if (this.accessToken) {
       return this.accessToken;
     }
 
-    if (this.refreshToken) {
-      const refreshed = await this.refreshAccessToken();
-      if (refreshed) {
-        return this.accessToken;
-      }
+    // Try to refresh the token
+    const refreshed = await this.refreshAccessToken();
+    if (refreshed) {
+      return this.accessToken;
     }
 
     return null;
