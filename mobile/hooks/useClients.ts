@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '../services/storage.service';
+import { DemoDataService } from '../services/demo-data.service';
 import { Client, CreateClientDto, UpdateClientDto } from '../models/client.model';
+import { useSettings } from './useSettings';
 
 const STORAGE_KEY = 'clients';
 
@@ -14,20 +16,31 @@ const generateId = (): string => {
 /**
  * Hook for managing Client data
  * Provides CRUD operations with AsyncStorage persistence
+ * Supports demo mode with mock data
  */
 export function useClients() {
+  const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Load clients from storage
+   * Load clients from storage or demo data
    */
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
-      const stored = await StorageService.get<Client[]>(STORAGE_KEY);
-      setClients(stored || []);
+      
+      if (isDemoMode) {
+        // Use demo data
+        setClients(DemoDataService.getClients());
+      } else {
+        // Use real storage
+        const stored = await StorageService.get<Client[]>(STORAGE_KEY);
+        setClients(stored || []);
+      }
       setError(null);
     } catch (err) {
       setError('Failed to load clients');
@@ -35,15 +48,20 @@ export function useClients() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   /**
-   * Save clients to storage
+   * Save clients to storage (disabled in demo mode)
    */
   const saveClients = useCallback(async (data: Client[]) => {
+    if (isDemoMode) {
+      // In demo mode, just update local state without persisting
+      setClients(data);
+      return;
+    }
     await StorageService.set(STORAGE_KEY, data);
     setClients(data);
-  }, []);
+  }, [isDemoMode]);
 
   /**
    * Get client by ID
@@ -105,7 +123,7 @@ export function useClients() {
     return clients.filter(c => c.name.toLowerCase().includes(lowerQuery));
   }, [clients]);
 
-  // Load clients on mount
+  // Load clients on mount and when demo mode changes
   useEffect(() => {
     loadClients();
   }, [loadClients]);

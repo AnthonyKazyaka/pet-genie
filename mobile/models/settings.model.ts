@@ -28,6 +28,9 @@ export interface AppSettings {
   // Notification preferences (for future use)
   enableReminders: boolean;
   reminderMinutesBefore: number;
+  
+  // Demo mode (uses mock data throughout the app)
+  demoMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -55,6 +58,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Notifications
   enableReminders: false,
   reminderMinutesBefore: 30,
+  
+  // Demo mode
+  demoMode: false,
 };
 
 export type SettingsUpdateDto = Partial<AppSettings>;

@@ -21,3 +21,4 @@ export {
   type ScheduledNotification,
 } from './notification.service';
 export { HapticFeedback, haptic, type HapticType } from './haptic.service';
+export { DemoDataService } from './demo-data.service';

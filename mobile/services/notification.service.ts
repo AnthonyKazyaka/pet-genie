@@ -8,16 +8,24 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import { CalendarEvent } from '@/models';
 
-// Configure notification handling
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Check if running in Expo Go (push notifications not supported)
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// Configure notification handling (only if not in Expo Go)
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 const PUSH_TOKEN_KEY = 'push_notification_token';
 const SCHEDULED_NOTIFICATIONS_KEY = 'scheduled_notifications';
@@ -37,13 +45,21 @@ class NotificationServiceClass {
   private scheduledNotifications: Map<string, ScheduledNotification> = new Map();
 
   constructor() {
-    this.loadScheduledNotifications();
+    if (!isExpoGo) {
+      this.loadScheduledNotifications();
+    }
   }
 
   /**
    * Initialize notification permissions
    */
   async initialize(): Promise<boolean> {
+    // Push notifications not supported in Expo Go
+    if (isExpoGo) {
+      console.log('Push notifications not supported in Expo Go. Use a development build.');
+      return false;
+    }
+
     if (!Device.isDevice) {
       console.log('Notifications require a physical device');
       return false;
@@ -63,10 +79,17 @@ class NotificationServiceClass {
         return false;
       }
 
-      // Get push token
-      const token = await Notifications.getExpoPushTokenAsync();
-      this.pushToken = token.data;
-      await SecureStore.setItemAsync(PUSH_TOKEN_KEY, this.pushToken);
+      // Get push token (only for development builds, not Expo Go)
+      try {
+        const token = await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        });
+        this.pushToken = token.data;
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, this.pushToken);
+      } catch (tokenError) {
+        console.log('Could not get push token:', tokenError);
+        // Continue without push token - local notifications will still work
+      }
 
       // Configure Android notification channel
       if (Platform.OS === 'android') {
@@ -138,6 +161,8 @@ class NotificationServiceClass {
     event: CalendarEvent,
     minutesBefore: number = 30
   ): Promise<string | null> {
+    if (isExpoGo) return null;
+
     try {
       const eventStart = new Date(event.start);
       const triggerTime = new Date(eventStart.getTime() - minutesBefore * 60 * 1000);
@@ -189,6 +214,8 @@ class NotificationServiceClass {
     event: CalendarEvent,
     minutesAfter: number = 5
   ): Promise<string | null> {
+    if (isExpoGo) return null;
+
     try {
       const eventStart = new Date(event.start);
       const triggerTime = new Date(eventStart.getTime() + minutesAfter * 60 * 1000);
@@ -238,6 +265,8 @@ class NotificationServiceClass {
     event: CalendarEvent,
     minutesBefore: number = 5
   ): Promise<string | null> {
+    if (isExpoGo) return null;
+
     try {
       const eventEnd = new Date(event.end);
       const triggerTime = new Date(eventEnd.getTime() - minutesBefore * 60 * 1000);
@@ -311,6 +340,8 @@ class NotificationServiceClass {
    * Cancel a specific notification
    */
   async cancelNotification(notificationId: string): Promise<void> {
+    if (isExpoGo) return;
+
     try {
       await Notifications.cancelScheduledNotificationAsync(notificationId);
       this.scheduledNotifications.delete(notificationId);
@@ -339,6 +370,8 @@ class NotificationServiceClass {
    * Cancel all scheduled notifications
    */
   async cancelAllNotifications(): Promise<void> {
+    if (isExpoGo) return;
+
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
       this.scheduledNotifications.clear();
@@ -356,6 +389,8 @@ class NotificationServiceClass {
     body: string,
     data?: Record<string, any>
   ): Promise<void> {
+    if (isExpoGo) return;
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -376,6 +411,7 @@ class NotificationServiceClass {
    * Get all scheduled notifications
    */
   async getScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
+    if (isExpoGo) return [];
     return Notifications.getAllScheduledNotificationsAsync();
   }
 
@@ -384,7 +420,8 @@ class NotificationServiceClass {
    */
   addNotificationReceivedListener(
     callback: (notification: Notifications.Notification) => void
-  ): Notifications.Subscription {
+  ): Notifications.Subscription | null {
+    if (isExpoGo) return null;
     return Notifications.addNotificationReceivedListener(callback);
   }
 
@@ -393,7 +430,8 @@ class NotificationServiceClass {
    */
   addNotificationResponseReceivedListener(
     callback: (response: Notifications.NotificationResponse) => void
-  ): Notifications.Subscription {
+  ): Notifications.Subscription | null {
+    if (isExpoGo) return null;
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '../services/storage.service';
+import { DemoDataService } from '../services/demo-data.service';
 import {
   VisitRecord,
   VisitStatus,
   CreateVisitRecordDto,
   UpdateVisitRecordDto,
 } from '../models/visit-record.model';
+import { useSettings } from './useSettings';
 
 const STORAGE_KEY = 'visit_records';
 
@@ -19,20 +21,31 @@ const generateId = (): string => {
 /**
  * Hook for managing Visit Record data
  * Provides CRUD operations with AsyncStorage persistence
+ * Supports demo mode with mock data
  */
 export function useVisitRecords() {
+  const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  
   const [visitRecords, setVisitRecords] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Load visit records from storage
+   * Load visit records from storage or demo data
    */
   const loadVisitRecords = useCallback(async () => {
     try {
       setLoading(true);
-      const stored = await StorageService.get<VisitRecord[]>(STORAGE_KEY);
-      setVisitRecords(stored || []);
+      
+      if (isDemoMode) {
+        // Use demo data
+        setVisitRecords(DemoDataService.getVisitRecords());
+      } else {
+        // Use real storage
+        const stored = await StorageService.get<VisitRecord[]>(STORAGE_KEY);
+        setVisitRecords(stored || []);
+      }
       setError(null);
     } catch (err) {
       setError('Failed to load visit records');
@@ -40,15 +53,20 @@ export function useVisitRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   /**
-   * Save visit records to storage
+   * Save visit records to storage (disabled in demo mode)
    */
   const saveVisitRecords = useCallback(async (data: VisitRecord[]) => {
+    if (isDemoMode) {
+      // In demo mode, just update local state without persisting
+      setVisitRecords(data);
+      return;
+    }
     await StorageService.set(STORAGE_KEY, data);
     setVisitRecords(data);
-  }, []);
+  }, [isDemoMode]);
 
   /**
    * Get visit record by ID
@@ -190,7 +208,7 @@ export function useVisitRecords() {
     [getByEventKey, create]
   );
 
-  // Load visit records on mount
+  // Load visit records on mount and when demo mode changes
   useEffect(() => {
     loadVisitRecords();
   }, [loadVisitRecords]);

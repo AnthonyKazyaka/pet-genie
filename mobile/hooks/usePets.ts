@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StorageService } from '../services/storage.service';
+import { DemoDataService } from '../services/demo-data.service';
 import { Pet, CreatePetDto, UpdatePetDto } from '../models/pet.model';
+import { useSettings } from './useSettings';
 
 const STORAGE_KEY = 'pets';
 
@@ -14,20 +16,31 @@ const generateId = (): string => {
 /**
  * Hook for managing Pet data
  * Provides CRUD operations with AsyncStorage persistence
+ * Supports demo mode with mock data
  */
 export function usePets() {
+  const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Load pets from storage
+   * Load pets from storage or demo data
    */
   const loadPets = useCallback(async () => {
     try {
       setLoading(true);
-      const stored = await StorageService.get<Pet[]>(STORAGE_KEY);
-      setPets(stored || []);
+      
+      if (isDemoMode) {
+        // Use demo data
+        setPets(DemoDataService.getPets());
+      } else {
+        // Use real storage
+        const stored = await StorageService.get<Pet[]>(STORAGE_KEY);
+        setPets(stored || []);
+      }
       setError(null);
     } catch (err) {
       setError('Failed to load pets');
@@ -35,15 +48,20 @@ export function usePets() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   /**
-   * Save pets to storage
+   * Save pets to storage (disabled in demo mode)
    */
   const savePets = useCallback(async (data: Pet[]) => {
+    if (isDemoMode) {
+      // In demo mode, just update local state without persisting
+      setPets(data);
+      return;
+    }
     await StorageService.set(STORAGE_KEY, data);
     setPets(data);
-  }, []);
+  }, [isDemoMode]);
 
   /**
    * Get pet by ID
@@ -113,7 +131,7 @@ export function usePets() {
     return true;
   }, [pets, savePets]);
 
-  // Load pets on mount
+  // Load pets on mount and when demo mode changes
   useEffect(() => {
     loadPets();
   }, [loadPets]);

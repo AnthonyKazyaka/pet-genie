@@ -3,6 +3,11 @@
  * Based on Google Calendar API event structure with pet-genie extensions
  */
 
+export interface DateRange {
+  start: Date;
+  end: Date;
+}
+
 export interface CalendarEvent {
   id: string;
   calendarId: string;

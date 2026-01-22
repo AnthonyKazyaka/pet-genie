@@ -17,6 +17,8 @@ import {
   GoogleAuthState,
   GoogleCalendar,
 } from '@/services/google-calendar.service';
+import { DemoDataService } from '@/services/demo-data.service';
+import { useSettings } from './useSettings';
 import { CalendarEvent, DateRange } from '@/models';
 
 interface AuthContextValue extends GoogleAuthState {
@@ -130,14 +132,37 @@ export function useAuth(): AuthContextValue {
 
 /**
  * Hook to fetch calendar events with date range
+ * Supports demo mode with mock data
  */
 export function useCalendarEvents(dateRange: DateRange | null) {
   const { isSignedIn, fetchEvents, selectedCalendars } = useAuth();
+  const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async () => {
+    // Demo mode - use mock data
+    if (isDemoMode && dateRange) {
+      setLoading(true);
+      setError(null);
+      try {
+        const demoEvents = DemoDataService.getEvents(
+          dateRange.start,
+          dateRange.end
+        );
+        setEvents(demoEvents);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to generate demo events'));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Real mode - use Google Calendar
     if (!isSignedIn || !dateRange || selectedCalendars.length === 0) {
       setEvents([]);
       return;
@@ -154,7 +179,7 @@ export function useCalendarEvents(dateRange: DateRange | null) {
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn, dateRange, selectedCalendars, fetchEvents]);
+  }, [isDemoMode, isSignedIn, dateRange, selectedCalendars, fetchEvents]);
 
   useEffect(() => {
     refresh();

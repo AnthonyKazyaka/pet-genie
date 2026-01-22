@@ -9,6 +9,7 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { CalendarEvent, DateRange } from '@/models';
 
@@ -16,9 +17,9 @@ import { CalendarEvent, DateRange } from '@/models';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth Configuration
-const GOOGLE_CLIENT_ID_WEB = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID_IOS = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID_ANDROID = 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_WEB = Constants.expoConfig?.extra?.googleClientIds?.web ?? '';
+const GOOGLE_CLIENT_ID_IOS = Constants.expoConfig?.extra?.googleClientIds?.ios ?? '';
+const GOOGLE_CLIENT_ID_ANDROID = Constants.expoConfig?.extra?.googleClientIds?.android ?? '';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 const DISCOVERY = {
@@ -92,6 +93,22 @@ function getClientId(): string {
  * Get the redirect URI for the current platform
  */
 function getRedirectUri(): string {
+  if (Platform.OS === 'android') {
+    if (!GOOGLE_CLIENT_ID_ANDROID) {
+      throw new Error('Missing EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID');
+    }
+    const clientIdBase = GOOGLE_CLIENT_ID_ANDROID.replace('.apps.googleusercontent.com', '');
+    return `com.googleusercontent.apps.${clientIdBase}:/oauth2redirect`;
+  }
+
+  if (Platform.OS === 'ios') {
+    if (!GOOGLE_CLIENT_ID_IOS) {
+      throw new Error('Missing EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS');
+    }
+    const clientIdBase = GOOGLE_CLIENT_ID_IOS.replace('.apps.googleusercontent.com', '');
+    return `com.googleusercontent.apps.${clientIdBase}:/oauth2redirect`;
+  }
+
   return AuthSession.makeRedirectUri({
     scheme: 'petgenie',
     path: 'oauth/callback',
@@ -238,6 +255,10 @@ class GoogleCalendarServiceClass {
       const clientId = getClientId();
       const redirectUri = getRedirectUri();
 
+      console.log('[GoogleAuth] Platform:', Platform.OS);
+      console.log('[GoogleAuth] clientId:', clientId);
+      console.log('[GoogleAuth] redirectUri:', redirectUri);
+
       const request = new AuthSession.AuthRequest({
         clientId,
         scopes: SCOPES,
@@ -250,7 +271,7 @@ class GoogleCalendarServiceClass {
         },
       });
 
-      const result = await request.promptAsync(DISCOVERY);
+      const result = await request.promptAsync(DISCOVERY, { useProxy: false });
 
       if (result.type === 'success' && result.params.code) {
         // Exchange code for tokens
@@ -548,7 +569,7 @@ class GoogleCalendarServiceClass {
       status: (raw.status as 'confirmed' | 'tentative' | 'cancelled') || 'confirmed',
       isWorkEvent: true,
       clientName,
-      serviceInfo: serviceType ? { type: serviceType } : undefined,
+      serviceInfo: serviceType ? { type: serviceType, duration: 30 } : undefined,
     };
   }
 }

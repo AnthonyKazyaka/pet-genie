@@ -490,6 +490,40 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Demo Mode Section */}
+        <View style={styles.section}>
+          <SectionHeader icon="flask" title="Demo Mode" />
+          
+          <View style={[styles.card, localSettings.demoMode && styles.demoModeCard]}>
+            <ToggleInput
+              label="Enable Demo Mode"
+              description="Use sample data to explore the app without connecting a calendar"
+              value={localSettings.demoMode}
+              onChangeValue={(v) => {
+                handleChange('demoMode', v);
+                if (v) {
+                  Alert.alert(
+                    'Demo Mode Enabled',
+                    'The app will now show sample clients, pets, and visits. Your real data is preserved and will return when you disable demo mode.',
+                    [{ text: 'Got it' }]
+                  );
+                }
+              }}
+            />
+            {localSettings.demoMode && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.demoModeInfo}>
+                  <FontAwesome name="info-circle" size={16} color="#FF9800" />
+                  <Text style={styles.demoModeText}>
+                    Demo mode is active. All data shown is sample data for demonstration purposes.
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           {hasChanges && (
@@ -773,5 +807,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginTop: 2,
+  },
+  // Demo Mode styles
+  demoModeCard: {
+    borderColor: '#FF9800',
+    borderWidth: 2,
+    backgroundColor: '#FFF8E1',
+  },
+  demoModeInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  demoModeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 18,
   },
 });
