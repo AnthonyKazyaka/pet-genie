@@ -422,6 +422,19 @@ export const DemoDataService = {
   isDemoId(id: string): boolean {
     return id.startsWith('demo_');
   },
+
+  /**
+   * Get demo event-client mappings
+   * Maps demo event client names to their corresponding demo client IDs
+   */
+  getEventClientMappings(): { eventClientName: string; clientId: string; createdAt: string }[] {
+    // Create mappings from client names to client IDs
+    return DEMO_CLIENTS.map(client => ({
+      eventClientName: client.name,
+      clientId: client.id,
+      createdAt: client.createdAt,
+    }));
+  },
 };
 
 export default DemoDataService;

@@ -418,6 +418,7 @@ export default function CalendarScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
   const { getBurnoutIndicators } = useRulesEngine(settings);
   
   // Auth state for Google Calendar
@@ -455,10 +456,10 @@ export default function CalendarScreen() {
   // Fetch calendar events for the date range
   const { events: calendarEvents, loading: eventsLoading, refresh: refreshEvents } = useCalendarEvents(dateRange);
   
-  // Use empty array if not signed in
+  // Use calendar events if signed in or in demo mode
   const events = useMemo(() => {
-    return isSignedIn && calendarEvents ? calendarEvents : [];
-  }, [isSignedIn, calendarEvents]);
+    return (isSignedIn || isDemoMode) && calendarEvents ? calendarEvents : [];
+  }, [isSignedIn, isDemoMode, calendarEvents]);
 
   // Get days for current month view
   const monthDays = useMemo(() => {
@@ -584,8 +585,8 @@ export default function CalendarScreen() {
     return <LoadingState type="skeleton-calendar" />;
   }
   
-  // Show connect prompt if not signed in
-  if (!isSignedIn) {
+  // Show connect prompt if not signed in and not in demo mode
+  if (!isSignedIn && !isDemoMode) {
     return (
       <ThemedView style={styles.container}>
         <CalendarConnectPrompt

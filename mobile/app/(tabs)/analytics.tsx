@@ -231,16 +231,19 @@ export default function AnalyticsScreen() {
   const [warnings, setWarnings] = useState<WorkloadWarning[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Use empty array if not signed in
+  // Demo mode check
+  const isDemoMode = settings.demoMode;
+  
+  // Use calendar events if signed in or in demo mode
   const events = useMemo(() => {
-    return isSignedIn && calendarEvents ? calendarEvents : [];
-  }, [isSignedIn, calendarEvents]);
+    return (isSignedIn || isDemoMode) && calendarEvents ? calendarEvents : [];
+  }, [isSignedIn, isDemoMode, calendarEvents]);
 
   /**
    * Compute analytics when events change
    */
   useEffect(() => {
-    if (!isSignedIn || !calendarEvents) {
+    if ((!isSignedIn && !isDemoMode) || !calendarEvents) {
       setAnalytics(null);
       setWarnings([]);
       return;
@@ -261,7 +264,7 @@ export default function AnalyticsScreen() {
     } catch (error) {
       console.error('Error computing analytics:', error);
     }
-  }, [isSignedIn, calendarEvents, visitRecords, settings, computeAnalytics, checkWorkloadWarnings]);
+  }, [isSignedIn, isDemoMode, calendarEvents, visitRecords, settings, computeAnalytics, checkWorkloadWarnings]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -276,8 +279,8 @@ export default function AnalyticsScreen() {
     return <LoadingState message="Loading analytics..." />;
   }
   
-  // Show connect prompt if not signed in
-  if (!isSignedIn) {
+  // Show connect prompt if not signed in and not in demo mode
+  if (!isSignedIn && !isDemoMode) {
     return (
       <ThemedView style={styles.container}>
         <CalendarConnectPrompt

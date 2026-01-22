@@ -31,6 +31,9 @@ export interface AppSettings {
   
   // Demo mode (uses mock data throughout the app)
   demoMode: boolean;
+  
+  // Selected Google Calendar IDs
+  selectedCalendars: string[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -61,6 +64,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   
   // Demo mode
   demoMode: false,
+  
+  // Selected calendars (empty until user connects and selects)
+  selectedCalendars: [],
 };
 
 export type SettingsUpdateDto = Partial<AppSettings>;

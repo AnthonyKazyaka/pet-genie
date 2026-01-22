@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
-import { useVisitRecords, useClients, useSettings, useAnalytics } from '@/hooks';
+import { useVisitRecords, useClients, useSettings, useAnalytics, useAuth, useCalendarEvents } from '@/hooks';
 import { CalendarEvent, Client, VisitRecord } from '@/models';
+import { DemoDataService } from '@/services/demo-data.service';
 
 /**
  * Date range options
@@ -88,53 +89,6 @@ function formatTime(date: Date): string {
  */
 function formatHours(hours: number): string {
   return `${hours.toFixed(1)}h`;
-}
-
-/**
- * Generate mock events for export
- */
-function generateMockEvents(): CalendarEvent[] {
-  const events: CalendarEvent[] = [];
-  const today = new Date();
-
-  for (let dayOffset = -30; dayOffset <= 0; dayOffset++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + dayOffset);
-
-    if (Math.random() > 0.4) continue;
-
-    const dateStr = date.toISOString().split('T')[0];
-    const eventCount = Math.floor(Math.random() * 4) + 1;
-
-    const services = ['drop-in', 'walk', 'overnight'];
-    const clients = ['Johnson Family', 'Smith Residence', 'Garcia Home', 'Williams Family'];
-    const hours = [8, 10, 14, 16];
-
-    for (let i = 0; i < eventCount && i < hours.length; i++) {
-      const service = services[Math.floor(Math.random() * services.length)];
-      const client = clients[Math.floor(Math.random() * clients.length)];
-      const duration = service === 'walk' ? 60 : 30;
-
-      events.push({
-        id: `event_${dateStr}_${i}`,
-        calendarId: 'work',
-        title: `${service === 'walk' ? 'Walk' : 'Drop-in'} - ${client}`,
-        clientName: client,
-        location: `${100 + i} Main Street`,
-        start: `${dateStr}T${String(hours[i]).padStart(2, '0')}:00:00`,
-        end: `${dateStr}T${String(hours[i]).padStart(2, '0')}:${String(duration).padStart(2, '0')}:00`,
-        allDay: false,
-        status: 'confirmed',
-        isWorkEvent: true,
-        serviceInfo: {
-          type: service as any,
-          duration,
-        },
-      });
-    }
-  }
-
-  return events;
 }
 
 /**
@@ -319,23 +273,41 @@ function OptionButton({
  */
 export default function ExportScreen() {
   const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  const { isSignedIn } = useAuth();
+  
+  // Get date range for fetching events (past 90 days for export options)
+  const dateRange = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 90);
+    return { start, end };
+  }, []);
+  
+  // Fetch calendar events
+  const { events: calendarEvents } = useCalendarEvents(dateRange);
 
-  const [dateRange, setDateRange] = useState<DateRangeOption>('month');
+  const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>('month');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('summary');
   const [groupBy, setGroupBy] = useState<GroupBy>('day');
   const [exporting, setExporting] = useState(false);
 
-  // Generate mock events (in production, fetch from calendar)
-  const events = useMemo(() => generateMockEvents(), []);
+  // Use demo data or real calendar events
+  const events = useMemo(() => {
+    if (isDemoMode) {
+      return DemoDataService.getPastEvents();
+    }
+    return calendarEvents || [];
+  }, [isDemoMode, calendarEvents]);
 
   // Filter events by date range
   const filteredEvents = useMemo(() => {
-    const { start, end } = getDateRange(dateRange);
+    const { start, end } = getDateRange(dateRangeOption);
     return events.filter((e) => {
       const eventDate = new Date(e.start);
       return eventDate >= start && eventDate <= end;
     });
-  }, [events, dateRange]);
+  }, [events, dateRangeOption]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -364,7 +336,7 @@ export default function ExportScreen() {
     setExporting(true);
 
     try {
-      const { start, end } = getDateRange(dateRange);
+      const { start, end } = getDateRange(dateRangeOption);
       let content: string;
       let title: string;
 
@@ -408,7 +380,7 @@ export default function ExportScreen() {
       return;
     }
 
-    const { start, end } = getDateRange(dateRange);
+    const { start, end } = getDateRange(dateRangeOption);
     let content: string;
 
     switch (exportFormat) {
@@ -456,28 +428,28 @@ export default function ExportScreen() {
           <View style={styles.optionsGrid}>
             <OptionButton
               label="Today"
-              selected={dateRange === 'today'}
-              onPress={() => setDateRange('today')}
+              selected={dateRangeOption === 'today'}
+              onPress={() => setDateRangeOption('today')}
             />
             <OptionButton
               label="This Week"
-              selected={dateRange === 'week'}
-              onPress={() => setDateRange('week')}
+              selected={dateRangeOption === 'week'}
+              onPress={() => setDateRangeOption('week')}
             />
             <OptionButton
               label="This Month"
-              selected={dateRange === 'month'}
-              onPress={() => setDateRange('month')}
+              selected={dateRangeOption === 'month'}
+              onPress={() => setDateRangeOption('month')}
             />
             <OptionButton
               label="Quarter"
-              selected={dateRange === 'quarter'}
-              onPress={() => setDateRange('quarter')}
+              selected={dateRangeOption === 'quarter'}
+              onPress={() => setDateRangeOption('quarter')}
             />
             <OptionButton
               label="Year"
-              selected={dateRange === 'year'}
-              onPress={() => setDateRange('year')}
+              selected={dateRangeOption === 'year'}
+              onPress={() => setDateRangeOption('year')}
             />
           </View>
         </View>

@@ -196,6 +196,7 @@ export default function TodayScreen() {
   const { visitRecords, getByEventKey, getOrCreate, checkIn, checkOut, update } = useVisitRecords();
   const { checkWorkloadWarnings } = useAnalytics();
   const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
   
   // Auth state for Google Calendar
   const { isSignedIn, isLoading: authLoading, signIn } = useAuth();
@@ -218,7 +219,7 @@ export default function TodayScreen() {
 
   // Merge calendar events with visit records
   useEffect(() => {
-    if (!isSignedIn || !calendarEvents) {
+    if ((!isSignedIn && !isDemoMode) || !calendarEvents) {
       setVisits([]);
       return;
     }
@@ -245,7 +246,7 @@ export default function TodayScreen() {
     );
 
     setVisits(mergedVisits);
-  }, [isSignedIn, calendarEvents, getByEventKey, visitRecords]);
+  }, [isSignedIn, isDemoMode, calendarEvents, getByEventKey, visitRecords]);
 
   /**
    * Handle pull to refresh
@@ -357,7 +358,7 @@ export default function TodayScreen() {
 
   // Check workload warnings when visits or settings change
   useEffect(() => {
-    if (!isSignedIn || !calendarEvents) {
+    if ((!isSignedIn && !isDemoMode) || !calendarEvents) {
       setWarnings([]);
       return;
     }
@@ -367,7 +368,7 @@ export default function TodayScreen() {
       settings
     );
     setWarnings(workloadWarnings);
-  }, [isSignedIn, calendarEvents, visitRecords, settings, checkWorkloadWarnings]);
+  }, [isSignedIn, isDemoMode, calendarEvents, visitRecords, settings, checkWorkloadWarnings]);
 
   // Stats calculation
   const completedCount = visits.filter(
@@ -393,8 +394,8 @@ export default function TodayScreen() {
     return <LoadingState type="skeleton-today" />;
   }
   
-  // Show connect prompt if not signed in
-  if (!isSignedIn) {
+  // Show connect prompt if not signed in and not in demo mode
+  if (!isSignedIn && !isDemoMode) {
     return (
       <ThemedView style={styles.container}>
         <CalendarConnectPrompt

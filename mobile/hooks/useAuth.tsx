@@ -42,13 +42,20 @@ interface AuthProviderProps {
  * Auth Provider Component
  */
 export function AuthProvider({ children }: AuthProviderProps) {
+  const { settings, updateSettings } = useSettings();
   const [authState, setAuthState] = useState<GoogleAuthState>({
     isSignedIn: false,
     accessToken: null,
     userEmail: null,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCalendars, setSelectedCalendars] = useState<string[]>([]);
+  
+  // Use selectedCalendars from persisted settings
+  const selectedCalendars = settings.selectedCalendars;
+  
+  const setSelectedCalendars = useCallback(async (ids: string[]) => {
+    await updateSettings({ selectedCalendars: ids });
+  }, [updateSettings]);
 
   // Subscribe to auth state changes
   useEffect(() => {
@@ -69,29 +76,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       const result = await GoogleCalendarService.signIn();
-      if (result) {
-        // Auto-select primary calendar after sign in
+      if (result && selectedCalendars.length === 0) {
+        // Auto-select primary calendar after sign in if none selected
         const calendars = await GoogleCalendarService.listCalendars();
         const primary = calendars.find((c) => c.primary);
         if (primary) {
-          setSelectedCalendars([primary.id]);
+          await updateSettings({ selectedCalendars: [primary.id] });
         }
       }
       return result;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedCalendars.length, updateSettings]);
 
   const signOut = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
       await GoogleCalendarService.signOut();
-      setSelectedCalendars([]);
+      await updateSettings({ selectedCalendars: [] });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [updateSettings]);
 
   const listCalendars = useCallback(async (): Promise<GoogleCalendar[]> => {
     return GoogleCalendarService.listCalendars();

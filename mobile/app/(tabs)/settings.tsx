@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -17,6 +17,7 @@ import { Button } from '@/components/Button';
 import { useSettings, useAuth } from '@/hooks';
 import { DEFAULT_SETTINGS } from '@/models';
 import { HapticFeedback } from '@/services';
+import { GoogleCalendar } from '@/services/google-calendar.service';
 
 /**
  * Number Input Component
@@ -122,10 +123,53 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { settings, loading, updateSettings, resetSettings } = useSettings();
-  const { isSignedIn, isLoading: authLoading, userEmail, signIn, signOut } = useAuth();
+  const { isSignedIn, isLoading: authLoading, userEmail, signIn, signOut, listCalendars, selectedCalendars, setSelectedCalendars } = useAuth();
   const [localSettings, setLocalSettings] = useState(settings);
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Calendar selection state
+  const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
+  const [loadingCalendars, setLoadingCalendars] = useState(false);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  
+  // Load calendars when signed in
+  useEffect(() => {
+    if (isSignedIn && !authLoading) {
+      loadCalendars();
+    }
+  }, [isSignedIn, authLoading]);
+  
+  const loadCalendars = async () => {
+    setLoadingCalendars(true);
+    try {
+      const cals = await listCalendars();
+      setCalendars(cals);
+    } catch (error) {
+      console.error('Failed to load calendars:', error);
+    } finally {
+      setLoadingCalendars(false);
+    }
+  };
+  
+  const toggleCalendarSelection = async (calendarId: string) => {
+    const isSelected = selectedCalendars.includes(calendarId);
+    let newSelection: string[];
+    
+    if (isSelected) {
+      // Don't allow deselecting if it's the last one
+      if (selectedCalendars.length === 1) {
+        Alert.alert('Cannot Deselect', 'You must have at least one calendar selected.');
+        return;
+      }
+      newSelection = selectedCalendars.filter(id => id !== calendarId);
+    } else {
+      newSelection = [...selectedCalendars, calendarId];
+    }
+    
+    await setSelectedCalendars(newSelection);
+    HapticFeedback.selection();
+  };
 
   // Update local settings when loaded
   React.useEffect(() => {
@@ -287,6 +331,88 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             )}
           </View>
+          
+          {/* Calendar Selection - shown when signed in */}
+          {isSignedIn && (
+            <View style={[styles.card, isDark && styles.cardDark, { marginTop: 12 }]}>
+              <TouchableOpacity
+                style={styles.calendarPickerHeader}
+                onPress={() => setShowCalendarPicker(!showCalendarPicker)}
+              >
+                <View style={styles.calendarPickerHeaderLeft}>
+                  <FontAwesome name="calendar" size={18} color="#2196F3" />
+                  <View style={styles.calendarPickerHeaderText}>
+                    <Text style={[styles.calendarPickerTitle, isDark && styles.textDark]}>
+                      Calendars
+                    </Text>
+                    <Text style={[styles.calendarPickerSubtitle, isDark && styles.textMutedDark]}>
+                      {selectedCalendars.length} selected
+                    </Text>
+                  </View>
+                </View>
+                <FontAwesome 
+                  name={showCalendarPicker ? 'chevron-up' : 'chevron-down'} 
+                  size={14} 
+                  color={isDark ? '#666' : '#ccc'} 
+                />
+              </TouchableOpacity>
+              
+              {showCalendarPicker && (
+                <View style={styles.calendarList}>
+                  {loadingCalendars ? (
+                    <View style={styles.calendarLoadingContainer}>
+                      <ActivityIndicator size="small" color="#2196F3" />
+                      <Text style={[styles.calendarLoadingText, isDark && styles.textMutedDark]}>
+                        Loading calendars...
+                      </Text>
+                    </View>
+                  ) : calendars.length === 0 ? (
+                    <Text style={[styles.calendarEmptyText, isDark && styles.textMutedDark]}>
+                      No calendars found
+                    </Text>
+                  ) : (
+                    calendars.map((calendar, index) => (
+                      <React.Fragment key={calendar.id}>
+                        {index > 0 && <View style={styles.calendarDivider} />}
+                        <TouchableOpacity
+                          style={styles.calendarItem}
+                          onPress={() => toggleCalendarSelection(calendar.id)}
+                        >
+                          <View style={styles.calendarItemLeft}>
+                            <View 
+                              style={[
+                                styles.calendarColorDot, 
+                                { backgroundColor: calendar.backgroundColor || '#4285F4' }
+                              ]} 
+                            />
+                            <View style={styles.calendarItemText}>
+                              <Text 
+                                style={[styles.calendarName, isDark && styles.textDark]}
+                                numberOfLines={1}
+                              >
+                                {calendar.summary}
+                                {calendar.primary && (
+                                  <Text style={styles.calendarPrimaryBadge}> (Primary)</Text>
+                                )}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={[
+                            styles.calendarCheckbox,
+                            selectedCalendars.includes(calendar.id) && styles.calendarCheckboxSelected
+                          ]}>
+                            {selectedCalendars.includes(calendar.id) && (
+                              <FontAwesome name="check" size={12} color="#fff" />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ))
+                  )}
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Quick Links */}
@@ -825,5 +951,98 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#E65100',
     lineHeight: 18,
+  },
+  // Calendar picker styles
+  calendarPickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  calendarPickerHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  calendarPickerHeaderText: {
+    gap: 2,
+  },
+  calendarPickerTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+  },
+  calendarPickerSubtitle: {
+    fontSize: 13,
+    color: '#666',
+  },
+  calendarList: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  calendarLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 10,
+  },
+  calendarLoadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  calendarEmptyText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  calendarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  calendarItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  calendarColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  calendarItemText: {
+    flex: 1,
+  },
+  calendarName: {
+    fontSize: 14,
+    color: '#333',
+  },
+  calendarPrimaryBadge: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '400',
+  },
+  calendarCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarCheckboxSelected: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  calendarDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
   },
 });

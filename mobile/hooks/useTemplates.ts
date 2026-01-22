@@ -7,6 +7,7 @@ import {
   UpdateTemplateDto,
   DEFAULT_TEMPLATES,
 } from '@/models';
+import { useSettings } from './useSettings';
 
 const TEMPLATES_STORAGE_KEY = '@pet_genie/templates';
 
@@ -57,18 +58,30 @@ function initializeDefaultTemplates(): Template[] {
 
 /**
  * Custom hook for managing templates
+ * Supports demo mode where changes are not persisted
  */
 export function useTemplates() {
+  const { settings } = useSettings();
+  const isDemoMode = settings.demoMode;
+  
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Load templates from storage
+   * Load templates from storage or use defaults in demo mode
    */
   const loadTemplates = useCallback(async () => {
     try {
       setLoading(true);
+      
+      if (isDemoMode) {
+        // In demo mode, always use default templates
+        setTemplates(initializeDefaultTemplates());
+        setError(null);
+        return;
+      }
+      
       const stored = await AsyncStorage.getItem(TEMPLATES_STORAGE_KEY);
 
       if (stored) {
@@ -96,12 +109,18 @@ export function useTemplates() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   /**
-   * Save templates to storage
+   * Save templates to storage (disabled in demo mode)
    */
   const saveTemplates = useCallback(async (newTemplates: Template[]) => {
+    if (isDemoMode) {
+      // In demo mode, just update local state without persisting
+      setTemplates(newTemplates);
+      return;
+    }
+    
     try {
       await AsyncStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(newTemplates));
       setTemplates(newTemplates);
@@ -111,7 +130,7 @@ export function useTemplates() {
       setError('Failed to save templates');
       throw err;
     }
-  }, []);
+  }, [isDemoMode]);
 
   /**
    * Add a new template
