@@ -1,16 +1,21 @@
 {
   "name": "pet-genie",
   "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "mobile"
+  ],
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:shared": "npm run build -w @pet-genie/shared",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
-  "private": true,
   "dependencies": {
     "@angular/animations": "^17.3.12",
     "@angular/cdk": "^17.3.10",

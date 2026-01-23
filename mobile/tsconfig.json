@@ -5,6 +5,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@pet-genie/shared": [
+        "../packages/shared/src/index.ts"
+      ],
+      "@pet-genie/shared/*": [
+        "../packages/shared/src/*"
       ]
     }
   },
@@ -12,6 +18,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "../packages/shared/src/**/*.ts"
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "pet-genie",
+  "name": "pet-genie-mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -11,6 +11,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@pet-genie/shared": "*",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.1",
@@ -48,6 +49,7 @@
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "babel-jest": "^30.2.0",
+    "babel-plugin-module-resolver": "^5.0.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "jest-expo": "^54.0.16",
@@ -60,10 +62,12 @@
       "@testing-library/jest-native/extend-expect"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@pet-genie/shared)"
     ],
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
+      "^@/(.*)$": "<rootDir>/$1",
+      "^@pet-genie/shared$": "<rootDir>/../packages/shared/src/index.ts",
+      "^@pet-genie/shared/(.*)$": "<rootDir>/../packages/shared/src/$1"
     },
     "testPathIgnorePatterns": [
       "<rootDir>/node_modules/",
