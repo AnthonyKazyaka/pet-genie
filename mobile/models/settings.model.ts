@@ -20,6 +20,8 @@ export interface AppSettings {
   defaultViewDays: number; // days to show in calendar view
   showCompletedVisits: boolean;
   showNonWorkEvents: boolean; // Show personal/non-work events in Today view
+  showWeekNumbers: boolean; // Show week numbers in calendar
+  use24HourTime: boolean; // Use 24-hour time format (14:00 vs 2:00 PM)
   
   // Summary preferences
   includeTimestampsInSummary: boolean;
@@ -54,6 +56,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultViewDays: 7,
   showCompletedVisits: true,
   showNonWorkEvents: false, // Hide non-work events by default in Today view
+  showWeekNumbers: false,
+  use24HourTime: false,
   
   // Summary
   includeTimestampsInSummary: true,

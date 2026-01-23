@@ -14,6 +14,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { LoadingState } from '@/components/EmptyState';
 import { WeekView } from '@/components/WeekView';
+import { DayView } from '@/components/DayView';
 import { useSettings, useRulesEngine, useAuth, useCalendarEvents } from '@/hooks';
 import { HapticFeedback } from '@/services';
 import {
@@ -32,7 +33,7 @@ import {
 const { width } = Dimensions.get('window');
 const DAY_WIDTH = (width - 48) / 7; // Account for padding
 
-type ViewMode = 'month' | 'week';
+type ViewMode = 'month' | 'week' | 'day';
 
 /**
  * Get all days to display in month view (including padding days)
@@ -583,11 +584,19 @@ export default function CalendarScreen() {
   }, []);
 
   /**
-   * Toggle view mode
+   * Toggle view mode (cycles through month -> week -> day)
    */
-  const toggleViewMode = useCallback(() => {
+  const toggleViewMode = useCallback((mode?: ViewMode) => {
     HapticFeedback.selection();
-    setViewMode((mode) => (mode === 'month' ? 'week' : 'month'));
+    if (mode) {
+      setViewMode(mode);
+    } else {
+      setViewMode((current) => {
+        if (current === 'month') return 'week';
+        if (current === 'week') return 'day';
+        return 'month';
+      });
+    }
   }, []);
 
   /**
@@ -643,30 +652,90 @@ export default function CalendarScreen() {
   const ViewModeToggleComponent = () => {
     const isMonthView = viewMode === 'month';
     const isWeekView = viewMode === 'week';
+    const isDayView = viewMode === 'day';
     
     return (
       <View style={[styles.viewModeToggle, isDark && styles.viewModeToggleDark]}>
         <TouchableOpacity
           style={[styles.viewModeButton, isMonthView && styles.viewModeButtonActive]}
-          onPress={toggleViewMode}
+          onPress={() => toggleViewMode('month')}
         >
-          <FontAwesome name="calendar" size={16} color={isMonthView ? '#fff' : '#2196F3'} />
+          <FontAwesome name="calendar" size={14} color={isMonthView ? '#fff' : '#2196F3'} />
           <Text style={[styles.viewModeText, isMonthView && styles.viewModeTextActive]}>
             Month
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewModeButton, isWeekView && styles.viewModeButtonActive]}
-          onPress={toggleViewMode}
+          onPress={() => toggleViewMode('week')}
         >
-          <FontAwesome name="list" size={16} color={isWeekView ? '#fff' : '#2196F3'} />
+          <FontAwesome name="list" size={14} color={isWeekView ? '#fff' : '#2196F3'} />
           <Text style={[styles.viewModeText, isWeekView && styles.viewModeTextActive]}>
             Week
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewModeButton, isDayView && styles.viewModeButtonActive]}
+          onPress={() => toggleViewMode('day')}
+        >
+          <FontAwesome name="clock-o" size={14} color={isDayView ? '#fff' : '#2196F3'} />
+          <Text style={[styles.viewModeText, isDayView && styles.viewModeTextActive]}>
+            Day
           </Text>
         </TouchableOpacity>
       </View>
     );
   };
+
+  // Navigation for day view
+  const goToPrevDay = useCallback(() => {
+    HapticFeedback.selection();
+    setCurrentDate((d) => {
+      const newDate = new Date(d);
+      newDate.setDate(d.getDate() - 1);
+      return newDate;
+    });
+  }, []);
+
+  const goToNextDay = useCallback(() => {
+    HapticFeedback.selection();
+    setCurrentDate((d) => {
+      const newDate = new Date(d);
+      newDate.setDate(d.getDate() + 1);
+      return newDate;
+    });
+  }, []);
+
+  // Day view
+  if (viewMode === 'day') {
+    return (
+      <ThemedView style={styles.container}>
+        <ViewModeToggleComponent />
+        <View style={[styles.dayNavHeader, isDark && styles.dayNavHeaderDark]}>
+          <TouchableOpacity onPress={goToPrevDay} style={styles.navButton}>
+            <FontAwesome name="chevron-left" size={20} color="#2196F3" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={goToToday}>
+            <Text style={[styles.monthTitle, isDark && styles.monthTitleDark]}>
+              {currentDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={goToNextDay} style={styles.navButton}>
+            <FontAwesome name="chevron-right" size={20} color="#2196F3" />
+          </TouchableOpacity>
+        </View>
+        <DayView
+          date={currentDate}
+          events={events}
+          onEventPress={handleEventPress}
+        />
+      </ThemedView>
+    );
+  }
 
   // Week view
   if (viewMode === 'week') {
@@ -835,6 +904,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   monthHeaderDark: {},
+  dayNavHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dayNavHeaderDark: {
+    borderBottomColor: '#374151',
+  },
   navButton: {
     padding: 8,
   },

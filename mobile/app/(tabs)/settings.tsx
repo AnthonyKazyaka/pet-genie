@@ -15,7 +15,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { Button } from '@/components/Button';
 import { useSettings, useAuth } from '@/hooks';
-import { DEFAULT_SETTINGS } from '@/models';
+import { DEFAULT_SETTINGS, AppSettings } from '@/models/settings.model';
 import { HapticFeedback } from '@/services';
 import { GoogleCalendar } from '@/services/google-calendar.service';
 

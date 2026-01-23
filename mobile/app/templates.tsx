@@ -19,9 +19,8 @@ import {
   Template,
   TemplateType,
   CreateTemplateDto,
-  TEMPLATE_TYPE_LABELS,
-  TEMPLATE_TYPE_COLORS,
 } from '@/models';
+import { TEMPLATE_TYPE_LABELS, TEMPLATE_TYPE_COLORS } from '@/models/template.model';
 
 /**
  * Format duration for display

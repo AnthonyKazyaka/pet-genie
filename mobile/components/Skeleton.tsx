@@ -241,6 +241,72 @@ export function SkeletonChart() {
   );
 }
 
+/**
+ * Skeleton for dashboard screen
+ */
+export function SkeletonDashboard() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <View style={styles.dashboardContainer}>
+      {/* Header greeting */}
+      <View style={styles.dashboardHeader}>
+        <Skeleton width={180} height={28} borderRadius={6} />
+        <Skeleton width={140} height={16} borderRadius={4} style={{ marginTop: 6 }} />
+      </View>
+
+      {/* Quick stats row */}
+      <View style={styles.dashboardStatsRow}>
+        <View style={[styles.dashboardStatCard, isDark && styles.dashboardStatCardDark]}>
+          <Skeleton width={32} height={32} borderRadius={8} />
+          <Skeleton width={40} height={28} borderRadius={4} style={{ marginTop: 8 }} />
+          <Skeleton width={60} height={12} borderRadius={4} style={{ marginTop: 4 }} />
+        </View>
+        <View style={[styles.dashboardStatCard, isDark && styles.dashboardStatCardDark]}>
+          <Skeleton width={32} height={32} borderRadius={8} />
+          <Skeleton width={40} height={28} borderRadius={4} style={{ marginTop: 8 }} />
+          <Skeleton width={60} height={12} borderRadius={4} style={{ marginTop: 4 }} />
+        </View>
+        <View style={[styles.dashboardStatCard, isDark && styles.dashboardStatCardDark]}>
+          <Skeleton width={32} height={32} borderRadius={8} />
+          <Skeleton width={40} height={28} borderRadius={4} style={{ marginTop: 8 }} />
+          <Skeleton width={60} height={12} borderRadius={4} style={{ marginTop: 4 }} />
+        </View>
+      </View>
+
+      {/* Setup progress */}
+      <View style={[styles.dashboardSection, isDark && styles.dashboardSectionDark]}>
+        <Skeleton width={140} height={18} borderRadius={4} />
+        <View style={styles.dashboardProgressSteps}>
+          <View style={styles.dashboardProgressStep}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={100} height={14} borderRadius={4} />
+          </View>
+          <View style={styles.dashboardProgressStep}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={120} height={14} borderRadius={4} />
+          </View>
+          <View style={styles.dashboardProgressStep}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={90} height={14} borderRadius={4} />
+          </View>
+        </View>
+      </View>
+
+      {/* Upcoming events */}
+      <View style={[styles.dashboardSection, isDark && styles.dashboardSectionDark]}>
+        <Skeleton width={160} height={18} borderRadius={4} />
+        <View style={styles.dashboardEventsList}>
+          <Skeleton width="100%" height={60} borderRadius={8} style={{ marginTop: 12 }} />
+          <Skeleton width="100%" height={60} borderRadius={8} style={{ marginTop: 8 }} />
+          <Skeleton width="100%" height={60} borderRadius={8} style={{ marginTop: 8 }} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
@@ -343,5 +409,48 @@ const styles = StyleSheet.create({
   },
   chartBarContainer: {
     alignItems: 'center',
+  },
+  dashboardContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  dashboardHeader: {
+    marginBottom: 20,
+  },
+  dashboardStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  dashboardStatCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  dashboardStatCardDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  dashboardSection: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  dashboardSectionDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  dashboardProgressSteps: {
+    marginTop: 16,
+    gap: 12,
+  },
+  dashboardProgressStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dashboardEventsList: {
+    marginTop: 4,
   },
 });

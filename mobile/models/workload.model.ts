@@ -191,3 +191,22 @@ export function getWorkloadSummary(level: WorkloadLevel, hours: number): string 
       return `${hoursText} scheduled - Consider rescheduling`;
   }
 }
+
+/**
+ * Filter to only include work events
+ */
+export function filterWorkEvents<T extends { isWorkEvent?: boolean }>(events: T[]): T[] {
+  return events.filter(e => e.isWorkEvent !== false);
+}
+
+/**
+ * Warning types for workload alerts
+ */
+export interface WorkloadWarning {
+  type: 'daily-visits' | 'daily-hours' | 'weekly-hours';
+  severity: 'warning' | 'critical';
+  message: string;
+  current: number;
+  limit: number;
+  percentage: number;
+}
