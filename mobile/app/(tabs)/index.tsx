@@ -8,6 +8,7 @@ import {
   useColorScheme,
   ActivityIndicator,
   Alert,
+  Switch,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
@@ -28,6 +29,7 @@ import {
   getWorkloadLevel,
   calculateDayWorkHours,
   DEFAULT_THRESHOLDS,
+  filterWorkEvents,
 } from '@/models';
 
 /**
@@ -140,6 +142,7 @@ function WarningBanner({ warnings, onPress }: { warnings: WorkloadWarning[]; onP
 
 /**
  * Today's Workload Summary Component
+ * Only counts work events for hours and visit count
  */
 function TodayWorkloadSummary({
   events,
@@ -149,7 +152,9 @@ function TodayWorkloadSummary({
   isDark: boolean;
 }) {
   const today = new Date();
-  const hours = calculateDayWorkHours(events, today);
+  // Filter to work events only for accurate workload display
+  const workEvents = filterWorkEvents(events);
+  const hours = calculateDayWorkHours(workEvents, today);
   const level = getWorkloadLevel(hours, 'daily', DEFAULT_THRESHOLDS);
   const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
   const workloadColor = colors[level];
@@ -181,7 +186,7 @@ function TodayWorkloadSummary({
         </View>
         <View style={[styles.workloadPill, { backgroundColor: workloadColor.solid }]}>
           <Text style={styles.workloadPillText}>
-            {events.length} {events.length === 1 ? 'visit' : 'visits'}
+            {workEvents.length} {workEvents.length === 1 ? 'visit' : 'visits'}
           </Text>
         </View>
       </View>
@@ -195,8 +200,9 @@ export default function TodayScreen() {
   const isDark = colorScheme === 'dark';
   const { visitRecords, getByEventKey, getOrCreate, checkIn, checkOut, update } = useVisitRecords();
   const { checkWorkloadWarnings } = useAnalytics();
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const isDemoMode = settings.demoMode;
+  const showNonWorkEvents = settings.showNonWorkEvents ?? false;
   
   // Auth state for Google Calendar
   const { isSignedIn, isLoading: authLoading, signIn } = useAuth();
@@ -247,6 +253,21 @@ export default function TodayScreen() {
 
     setVisits(mergedVisits);
   }, [isSignedIn, isDemoMode, calendarEvents, getByEventKey, visitRecords]);
+
+  // Filter visits based on showNonWorkEvents setting
+  const displayedVisits = useMemo(() => {
+    if (showNonWorkEvents) {
+      return visits;
+    }
+    // Filter to work events only when toggle is off
+    return visits.filter(v => v.isWorkEvent !== false);
+  }, [visits, showNonWorkEvents]);
+
+  // Toggle handler for show non-work events
+  const handleToggleNonWorkEvents = useCallback((value: boolean) => {
+    HapticFeedback.selection();
+    updateSettings({ showNonWorkEvents: value });
+  }, [updateSettings]);
 
   /**
    * Handle pull to refresh
@@ -370,16 +391,19 @@ export default function TodayScreen() {
     setWarnings(workloadWarnings);
   }, [isSignedIn, isDemoMode, calendarEvents, visitRecords, settings, checkWorkloadWarnings]);
 
-  // Stats calculation
-  const completedCount = visits.filter(
+  // Stats calculation - based on displayed visits (respects the filter toggle)
+  const completedCount = displayedVisits.filter(
     v => v.visitRecord?.status === 'completed'
   ).length;
-  const inProgressCount = visits.filter(
+  const inProgressCount = displayedVisits.filter(
     v => v.visitRecord?.status === 'in-progress'
   ).length;
-  const scheduledCount = visits.filter(
+  const scheduledCount = displayedVisits.filter(
     v => !v.visitRecord || v.visitRecord.status === 'scheduled'
   ).length;
+
+  // Count of non-work events (for showing info when hidden)
+  const nonWorkEventCount = visits.filter(v => v.isWorkEvent === false).length;
 
   // Navigate to analytics when warning is tapped
   const handleWarningPress = () => {
@@ -437,11 +461,26 @@ export default function TodayScreen() {
         </View>
       </View>
 
-      {/* Date Header */}
+      {/* Date Header with Filter Toggle */}
       <View style={styles.dateHeader}>
         <Text style={[styles.dateText, isDark && styles.dateTextDark]}>
           {formatDateHeader(dateRange.start)}
         </Text>
+        {/* Show toggle only if there are non-work events */}
+        {nonWorkEventCount > 0 && (
+          <View style={styles.filterToggle}>
+            <Text style={[styles.filterToggleLabel, isDark && styles.filterToggleLabelDark]}>
+              Personal
+            </Text>
+            <Switch
+              value={showNonWorkEvents}
+              onValueChange={handleToggleNonWorkEvents}
+              trackColor={{ false: '#767577', true: '#81b0ff' }}
+              thumbColor={showNonWorkEvents ? '#2196F3' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          </View>
+        )}
       </View>
 
       {/* Visits List */}
@@ -453,14 +492,16 @@ export default function TodayScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {visits.length === 0 ? (
+          {displayedVisits.length === 0 ? (
             <EmptyState
-              title="No visits today"
-              message="Your schedule is clear for today. Enjoy your day off!"
+              title={visits.length > 0 ? "No work visits today" : "No visits today"}
+              message={visits.length > 0 
+                ? `You have ${nonWorkEventCount} personal event${nonWorkEventCount > 1 ? 's' : ''} hidden. Toggle "Personal" to show them.`
+                : "Your schedule is clear for today. Enjoy your day off!"}
               icon={<FontAwesome name="calendar-o" size={48} color="#ccc" />}
             />
           ) : (
-            visits.map(visit => (
+            displayedVisits.map(visit => (
               <SwipeableVisitCard
                 key={visit.id}
                 time={formatTime(visit.start)}
@@ -575,6 +616,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
   },
   dateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -585,6 +629,18 @@ const styles = StyleSheet.create({
   },
   dateTextDark: {
     color: '#e0e0e0',
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterToggleLabel: {
+    fontSize: 13,
+    color: '#666',
+  },
+  filterToggleLabelDark: {
+    color: '#999',
   },
   scrollView: {
     flex: 1,

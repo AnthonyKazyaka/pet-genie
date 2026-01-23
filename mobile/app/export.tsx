@@ -11,7 +11,7 @@ import {
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Text, View as ThemedView } from '@/components/Themed';
 import { useVisitRecords, useClients, useSettings, useAnalytics, useAuth, useCalendarEvents } from '@/hooks';
-import { CalendarEvent, Client, VisitRecord } from '@/models';
+import { CalendarEvent, Client, VisitRecord, calculateDateRangeMetrics } from '@/models';
 import { DemoDataService } from '@/services/demo-data.service';
 
 /**
@@ -309,20 +309,11 @@ export default function ExportScreen() {
     });
   }, [events, dateRangeOption]);
 
-  // Calculate stats
+  // Calculate stats using centralized metrics (work events only, proper boundary handling)
   const stats = useMemo(() => {
-    const totalVisits = filteredEvents.length;
-    const totalHours = filteredEvents.reduce((sum, e) => {
-      const start = new Date(e.start);
-      const end = new Date(e.end);
-      return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    }, 0);
-    const uniqueClients = new Set(
-      filteredEvents.map((e) => e.clientName).filter(Boolean)
-    ).size;
-
-    return { totalVisits, totalHours, uniqueClients };
-  }, [filteredEvents]);
+    const { start, end } = getDateRange(dateRangeOption);
+    return calculateDateRangeMetrics(filteredEvents, start, end);
+  }, [filteredEvents, dateRangeOption]);
 
   /**
    * Generate and share report

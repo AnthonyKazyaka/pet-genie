@@ -19,6 +19,7 @@ export interface AppSettings {
   // Display preferences
   defaultViewDays: number; // days to show in calendar view
   showCompletedVisits: boolean;
+  showNonWorkEvents: boolean; // Show personal/non-work events in Today view
   
   // Summary preferences
   includeTimestampsInSummary: boolean;
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // Display
   defaultViewDays: 7,
   showCompletedVisits: true,
+  showNonWorkEvents: false, // Hide non-work events by default in Today view
   
   // Summary
   includeTimestampsInSummary: true,

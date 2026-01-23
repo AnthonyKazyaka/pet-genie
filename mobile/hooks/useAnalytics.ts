@@ -48,6 +48,7 @@ export function useAnalytics() {
 
   /**
    * Compute daily stats for a specific date
+   * Only counts work events for hours/visits calculations
    */
   const computeDailyStats = useCallback((
     date: Date,
@@ -60,10 +61,10 @@ export function useAnalytics() {
     const safeRecords = Array.isArray(visitRecords) ? visitRecords : [];
     const safeEvents = Array.isArray(events) ? events : [];
     
-    // Filter events for this day
+    // Filter events for this day - only work events for metrics
     const dayEvents = safeEvents.filter(e => {
       const eventDate = e.start.split('T')[0];
-      return eventDate === dateStr;
+      return eventDate === dateStr && e.isWorkEvent !== false;
     });
 
     // Filter visit records for these events
@@ -114,10 +115,10 @@ export function useAnalytics() {
         current.setDate(current.getDate() + 1);
       }
 
-      // Filter events in range
+      // Filter events in range - only work events for metrics
       const rangeEvents = events.filter(e => {
         const eventDate = new Date(e.start);
-        return eventDate >= startDate && eventDate <= endDate;
+        return eventDate >= startDate && eventDate <= endDate && e.isWorkEvent !== false;
       });
 
       // Get visit records for range

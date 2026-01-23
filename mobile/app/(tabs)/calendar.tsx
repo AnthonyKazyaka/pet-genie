@@ -24,6 +24,9 @@ import {
   getWorkloadLevel,
   calculateDayWorkHours,
   DEFAULT_THRESHOLDS,
+  calculateMonthlyMetrics,
+  calculateWeeklyHours,
+  filterWorkEvents,
 } from '@/models';
 
 const { width } = Dimensions.get('window');
@@ -380,16 +383,12 @@ function WeeklySummary({ events, isDark }: { events: CalendarEvent[]; isDark: bo
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
 
-  const weekEvents = events.filter((e) => {
+  // Use centralized metrics calculation - only counts work events and clamps to week boundaries
+  const weekHours = calculateWeeklyHours(events, startOfWeek, endOfWeek);
+  const workEvents = filterWorkEvents(events).filter((e) => {
     const eventDate = new Date(e.start);
     return eventDate >= startOfWeek && eventDate <= endOfWeek;
   });
-
-  const weekHours = weekEvents.reduce((total, e) => {
-    const start = new Date(e.start);
-    const end = new Date(e.end);
-    return total + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  }, 0);
 
   const weekLevel = getWorkloadLevel(weekHours, 'weekly', DEFAULT_THRESHOLDS);
   const colors = isDark ? WORKLOAD_COLORS_DARK : WORKLOAD_COLORS;
@@ -404,6 +403,48 @@ function WeeklySummary({ events, isDark }: { events: CalendarEvent[]; isDark: bo
         </Text>
         <View style={[styles.weeklyBadgePill, { backgroundColor: workloadColor.solid }]}>
           <Text style={styles.weeklyBadgePillText}>{workloadColor.label}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Monthly Stats Component
+ * Uses centralized metrics calculation for accurate work-event-only stats
+ */
+function MonthlyStats({
+  events,
+  currentDate,
+  isDark,
+}: {
+  events: CalendarEvent[];
+  currentDate: Date;
+  isDark: boolean;
+}) {
+  const metrics = useMemo(() => {
+    return calculateMonthlyMetrics(
+      events,
+      currentDate.getFullYear(),
+      currentDate.getMonth()
+    );
+  }, [events, currentDate]);
+
+  return (
+    <View style={[styles.statsContainer, isDark && styles.statsContainerDark]}>
+      <Text style={[styles.statsTitle, isDark && styles.statsTitleDark]}>This Month</Text>
+      <View style={styles.statsGrid}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{metrics.totalVisits}</Text>
+          <Text style={styles.statLabel}>Visits</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{Math.round(metrics.totalHours)}h</Text>
+          <Text style={styles.statLabel}>Hours</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{metrics.uniqueClients}</Text>
+          <Text style={styles.statLabel}>Clients</Text>
         </View>
       </View>
     </View>
@@ -710,62 +751,7 @@ export default function CalendarScreen() {
         )}
 
         {/* Stats Summary */}
-        <View style={[styles.statsContainer, isDark && styles.statsContainerDark]}>
-          <Text style={[styles.statsTitle, isDark && styles.statsTitleDark]}>This Month</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {events.filter((e) => {
-                  const d = new Date(e.start);
-                  return (
-                    d.getMonth() === currentDate.getMonth() &&
-                    d.getFullYear() === currentDate.getFullYear()
-                  );
-                }).length}
-              </Text>
-              <Text style={styles.statLabel}>Visits</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {Math.round(
-                  events
-                    .filter((e) => {
-                      const d = new Date(e.start);
-                      return (
-                        d.getMonth() === currentDate.getMonth() &&
-                        d.getFullYear() === currentDate.getFullYear()
-                      );
-                    })
-                    .reduce((sum, e) => {
-                      const start = new Date(e.start);
-                      const end = new Date(e.end);
-                      return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                    }, 0)
-                )}h
-              </Text>
-              <Text style={styles.statLabel}>Hours</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>
-                {
-                  new Set(
-                    events
-                      .filter((e) => {
-                        const d = new Date(e.start);
-                        return (
-                          d.getMonth() === currentDate.getMonth() &&
-                          d.getFullYear() === currentDate.getFullYear()
-                        );
-                      })
-                      .map((e) => e.clientName)
-                      .filter(Boolean)
-                  ).size
-                }
-              </Text>
-              <Text style={styles.statLabel}>Clients</Text>
-            </View>
-          </View>
-        </View>
+        <MonthlyStats events={events} currentDate={currentDate} isDark={isDark} />
       </ScrollView>
     </ThemedView>
   );
