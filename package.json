@@ -33,14 +33,14 @@
     "@types/lodash-es": "^4.17.12",
     "aws-amplify": "^6.6.6",
     "date-fns": "^4.1.0",
+    "expo": "~54.0.31",
     "firebase": "^12.8.0",
     "lodash-es": "^4.17.21",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.14.3",
-    "expo": "~54.0.31",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
+    "zone.js": "~0.14.3"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.3.4",
@@ -52,6 +52,7 @@
     "@types/react": "~19.1.10",
     "aws-cdk": "^2.137.0",
     "aws-cdk-lib": "^2.137.0",
+    "babel-preset-expo": "^54.0.10",
     "constructs": "^10.3.0",
     "esbuild": "^0.20.2",
     "jasmine-core": "~5.1.0",
